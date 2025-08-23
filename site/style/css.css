@@ -1,0 +1,114 @@
+/* Estilos Globais */
+:root {
+  --primary-color: #0d6efd;
+  --sidebar-bg: #212529;
+  --sidebar-link-color: #adb5bd;
+  --sidebar-link-hover: #ffffff;
+  --content-bg: #f8f9fa;
+}
+
+body {
+  background-color: var(--content-bg);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Estrutura Principal com Sidebar */
+.wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: var(--sidebar-bg);
+  color: white;
+  position: fixed;
+  height: 100%;
+  transition: all 0.3s;
+}
+
+.sidebar-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #495057;
+}
+
+.sidebar-header h3 {
+  color: white;
+  font-weight: 600;
+}
+
+.sidebar .nav-link {
+  color: var(--sidebar-link-color);
+  padding: 15px 20px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--sidebar-link-hover);
+  border-left: 4px solid var(--primary-color);
+}
+
+.sidebar .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  border-left: 4px solid var(--primary-color);
+}
+
+.sidebar .nav-link i {
+  margin-right: 15px;
+  width: 20px;
+  text-align: center;
+}
+
+.main-content {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  padding: 30px;
+  transition: all 0.3s;
+}
+
+/* Estilo para a página de Login */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--content-bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Componentes */
+.card-header-icon {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title-icon {
+    margin-right: 10px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .sidebar {
+    margin-left: -260px;
+  }
+  .main-content {
+    width: 100%;
+    margin-left: 0;
+  }
+  /* Adicionar uma classe .active ao wrapper para exibir o menu em mobile */
+  .wrapper.active .sidebar {
+    margin-left: 0;
+  }
+}

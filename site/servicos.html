@@ -1,0 +1,72 @@
+<!-- Main Content -->
+<div class="main-content">
+    <div class="container-fluid">
+        <div class="card-header-icon d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-concierge-bell card-title-icon"></i>Gerenciar Serviços</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#servicoModal">
+                <i class="fas fa-plus"></i> Adicionar Serviço
+            </button>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome do Serviço</th>
+                            <th>Descrição</th>
+                            <th>Valor Padrão</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Formatação de Computador</td>
+                            <td>Instalação de sistema operacional e drivers.</td>
+                            <td>R$ 120,00</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                        <!-- Mais linhas de serviços aqui -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Serviço -->
+    <div class="modal fade" id="servicoModal" tabindex="-1" aria-labelledby="servicoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="servicoModalLabel">Adicionar/Editar Serviço</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="servico_nome" class="form-label">Nome do Serviço</label>
+                            <input type="text" class="form-control" id="servico_nome" required>
+                        </div>
+                         <div class="mb-3">
+                            <label for="servico_descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="servico_descricao" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="servico_valor" class="form-label">Valor Unitário</label>
+                            <input type="number" step="0.01" class="form-control" id="servico_valor" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary">Salvar Serviço</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
