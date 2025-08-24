@@ -1,3 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Título da Página (opcional, mas bom para organização) -->
+    <title>Gerenciar Clientes</title>
+
+    <!-- Links essenciais do Bootstrap e Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Link para o SEU arquivo CSS central -->
+    <!-- O caminho ../style/css.css sobe um nível (de 'pages' para 'site') e depois entra em 'style' -->
+    <link rel="stylesheet" href="../style/css.css">
+</head>
+<body class="iframe-page"> <!-- A classe 'iframe-page' aplica o padding e o fundo corretos -->
 <!-- Main Content -->
 <div class="main-content">
     <div class="container-fluid">
@@ -77,6 +95,7 @@
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-primary">Importar CSV</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                     <button type="button" class="btn btn-primary">Salvar Cliente</button>
                 </div>
@@ -84,3 +103,11 @@
         </div>
     </div>
 </div>
+  <!-- Scripts do Bootstrap (necessário para modais, dropdowns, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Você pode adicionar um link para o seu script principal se a página precisar de interatividade -->
+    <!-- <script src="../script/js.js"></script> -->
+
+</body>
+</html>

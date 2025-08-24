@@ -90,3 +90,26 @@ document.addEventListener('DOMContentLoaded', function() {
         valorExtraInput.addEventListener('input', updateTotals);
     }
 });
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Lógica para marcar o item do menu como 'ativo' ao clicar
+    const sidebarLinks = document.querySelectorAll('.sidebar .nav-link');
+
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            // Remove a classe 'active' de todos os links
+            sidebarLinks.forEach(item => item.classList.remove('active'));
+            
+            // Adiciona a classe 'active' apenas no link clicado
+            this.classList.add('active');
+        });
+    });
+
+    // A lógica do formulário de OS continua a mesma,
+    // mas ela só vai funcionar quando a página abrir_os.html for carregada no iframe.
+    // O ideal é mover essa lógica para um script separado e chamá-lo apenas em abrir_os.html
+    // ou manter aqui, pois ela não dará erro nas outras páginas.
+    if (document.getElementById('os-form')) {
+        // ... (mantenha o código original do formulário de OS aqui) ...
+    }
+});
