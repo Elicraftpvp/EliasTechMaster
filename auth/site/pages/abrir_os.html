@@ -3,128 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- Título da Página (opcional, mas bom para organização) -->
-    <title>Gerenciar Clientes</title>
-
-    <!-- Links essenciais do Bootstrap e Font Awesome -->
+    <title>Abrir Ordem de Serviço</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- Link para o SEU arquivo CSS central -->
-    <!-- O caminho ../style/css.css sobe um nível (de 'pages' para 'site') e depois entra em 'style' -->
     <link rel="stylesheet" href="../style/css.css">
+    <style>
+        /* Estilos para o container de resultados da busca */
+        .search-results-container {
+            position: relative;
+        }
+        #search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            border: 1px solid #ced4da;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none; /* Começa escondido */
+        }
+        .search-result-item {
+            padding: 0.75rem 1.25rem;
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+        }
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
-<body class="iframe-page">
-<!-- Main Content -->
-<div class="main-content">
-    <div class="container-fluid">
+<body id="page-abrir-os" class="iframe-page">
+    <div class="container-fluid p-0">
         <h2 class="mb-4"><i class="fas fa-plus-circle"></i> Abrir Nova Ordem de Serviço</h2>
-
-        <form id="os-form" class="card shadow-sm">
+        <form id="os-form" class="card shadow-sm" onsubmit="return false;">
             <div class="card-body">
-                <!-- Dados do Cliente -->
-                <div class="mb-4">
-                    <h5>1. Dados do Cliente</h5>
-                    <div class="mb-3">
-                        <label for="cliente_nome" class="form-label">Buscar Cliente (Nome, CPF/CNPJ)</label>
-                        <input class="form-control" list="clientes-list" id="cliente_nome" placeholder="Digite para buscar...">
-                        <datalist id="clientes-list">
-                            <option value="João da Silva">
-                            <option value="Maria Souza">
-                            <option value="Empresa XYZ">
-                        </datalist>
+                <h5>1. Dados do Cliente</h5>
+                <div class="row">
+                    <!-- Campo oculto para guardar o ID do cliente selecionado -->
+                    <input type="hidden" id="cliente_id">
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome</label>
+                        <div class="search-results-container">
+                            <input type="text" class="form-control" id="cliente_nome" required autocomplete="off">
+                            <!-- Div para exibir os resultados da busca -->
+                            <div id="search-results"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">Telefone</label>
+                        <input type="text" class="form-control" id="cliente_telefone">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" class="form-control" id="cliente_email">
                     </div>
                 </div>
 
-                <!-- Informações do Equipamento -->
-                <div class="mb-4">
-                    <h5>2. Informações do Equipamento e Defeito</h5>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="equipamento" class="form-label">Equipamento / Produto</label>
-                            <input type="text" class="form-control" id="equipamento" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="defeito" class="form-label">Defeito Informado pelo Cliente</label>
-                            <input type="text" class="form-control" id="defeito" required>
-                        </div>
-                    </div>
-                     <div class="mb-3">
-                        <label for="laudo" class="form-label">Laudo Técnico</label>
-                        <textarea class="form-control" id="laudo" rows="3"></textarea>
-                    </div>
-                     <div class="mb-3">
-                        <label for="solucao" class="form-label">Solução Proposta</label>
-                        <textarea class="form-control" id="solucao" rows="3"></textarea>
-                    </div>
-                </div>
+                <h5>2. Informações do Equipamento</h5>
+                <div class="mb-3"><label class="form-label">Equipamento / Produto</label><input type="text" class="form-control" id="equipamento" required></div>
+                <div class="mb-3"><label class="form-label">Problema Informado</label><textarea class="form-control" id="problema" rows="2"></textarea></div>
+                <div class="mb-3"><label class="form-label">Laudo Técnico</label><textarea class="form-control" id="laudo" rows="2"></textarea></div>
 
-                <!-- Serviços e Valores -->
-                <div class="mb-4">
-                    <h5>3. Serviços e Valores</h5>
-                     <div class="row align-items-end mb-3">
-                        <div class="col-md-5">
-                            <label for="servico-select" class="form-label">Adicionar Serviço Padrão</label>
-                            <select id="servico-select" class="form-select">
-                                <option value="" selected disabled>Selecione um serviço</option>
-                                <option value="1">Formatação de Computador</option>
-                                <option value="2">Limpeza de Hardware</option>
-                                <option value="3">Troca de Tela de Notebook</option>
-                                <option value="4">Instalação de Software</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                             <button type="button" id="adicionar-servico" class="btn btn-success w-100">Adicionar</button>
-                        </div>
-                    </div>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Serviço</th>
-                                <th style="width: 100px;">Qtd</th>
-                                <th>Valor Unit.</th>
-                                <th>Subtotal</th>
-                                <th style="width: 50px;">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="servicos-selecionados-body">
-                            <!-- Linhas de serviço serão adicionadas aqui via JS -->
-                        </tbody>
-                    </table>
-                     <div class="row mt-3">
-                        <div class="col-md-4">
-                            <label for="servico_extra" class="form-label">Serviço Extra (Descrição)</label>
-                            <input type="text" id="servico_extra" class="form-control">
-                        </div>
-                         <div class="col-md-2">
-                            <label for="valor_extra" class="form-label">Valor Extra</label>
-                            <input type="number" step="0.01" id="valor_extra" class="form-control" placeholder="0.00">
-                        </div>
-                    </div>
+                <h5>3. Serviços Realizados</h5>
+                <div class="input-group mb-3">
+                    <select class="form-select" id="servicos-select"></select>
+                    <button class="btn btn-outline-primary" type="button" id="add-servico-btn">Adicionar</button>
                 </div>
-                
+                <table class="table">
+                    <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
+                    <tbody id="servicos-selecionados-body"></tbody>
+                </table>
                 <hr>
-                
-                <div class="d-flex justify-content-end align-items-center">
-                    <h4 class="me-4">TOTAL:</h4>
-                    <h4 id="total-os">R$ 0.00</h4>
-                </div>
-                
+                <div class="d-flex justify-content-end align-items-center"><h4 class="me-4">TOTAL:</h4><h4 id="total-os">R$ 0,00</h4></div>
             </div>
             <div class="card-footer text-end">
-                <button type="button" class="btn btn-secondary">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Salvar Ordem de Serviço</button>
+                <button type="reset" class="btn btn-secondary" id="limpar-form-btn">Limpar</button>
+                <button type="button" id="salvar-os-btn" class="btn btn-primary"><i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS</button>
             </div>
         </form>
     </div>
-</div>
-
-  <!-- Scripts do Bootstrap (necessário para modais, dropdowns, etc.) -->
+    <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Você pode adicionar um link para o seu script principal se a página precisar de interatividade -->
-    <!-- <script src="../script/js.js"></script> -->
-
+    <script src="../script/js.js"></script>
 </body>
 </html>
