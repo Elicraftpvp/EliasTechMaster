@@ -5,6 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DO MENU LATERAL (PARA index.html) ---
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
+        // Lógica de proteção de rota: se não houver usuário no sessionStorage, volta para o login
+        const loggedUser = sessionStorage.getItem('usuarioLogado');
+        if (!loggedUser) {
+            window.location.href = '../../login.html'; // Ajuste o caminho se necessário
+            return;
+        }
+
         const navLinks = sidebar.querySelectorAll('.nav-link');
         navLinks.forEach(link => {
             link.addEventListener('click', function() {
@@ -19,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ROTEAMENTO DE LÓGICA PARA PÁGINAS INTERNAS ---
     const pageId = document.body.id;
     switch (pageId) {
+        case 'page-login': initLoginPage(); break; // <-- NOVA ROTA ADICIONADA
         case 'page-dashboard': initDashboardPage(); break;
         case 'page-servicos': initServicosPage(); break;
         case 'page-clientes': initClientesPage(); break;
@@ -26,6 +34,65 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'page-abrir-os': initAbrirOsPage(); break;
     }
 });
+
+// ========================================================================
+// |                             PÁGINA DE LOGIN                          |
+// ========================================================================
+function initLoginPage() {
+    const loginForm = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const errorDiv = document.getElementById('login-error');
+    const loginButton = document.getElementById('login-button');
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Impede o envio padrão do formulário
+        errorDiv.classList.add('d-none'); // Esconde erros anteriores
+        loginButton.disabled = true;
+        loginButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Entrando...`;
+
+        const email = emailInput.value;
+        const senha = passwordInput.value;
+
+        if (!email || !senha) {
+            errorDiv.textContent = 'Por favor, preencha todos os campos.';
+            errorDiv.classList.remove('d-none');
+            loginButton.disabled = false;
+            loginButton.textContent = 'Entrar';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth_api.php`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, senha })
+            });
+            
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Erro desconhecido');
+            }
+            
+            if (result.success) {
+                // Salva os dados do usuário na sessão do navegador
+                sessionStorage.setItem('usuarioLogado', JSON.stringify(result.usuario));
+                // Redireciona para a página principal do sistema
+                window.location.href = './site/index.html';
+            }
+
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('d-none');
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = 'Entrar';
+        }
+    });
+}
 
 
 // ========================================================================
