@@ -153,3 +153,16 @@ body.iframe-page {
   padding: 0.5em 0.7em;
   font-weight: 500;
 }
+
+/* NOVO ESTILO PARA AS LISTAS DO DASHBOARD */
+.dashboard-list {
+    max-height: 220px; /* Limita a altura da lista */
+    overflow-y: auto; /* Adiciona barra de rolagem se necessário */
+}
+
+.dashboard-list .list-group-item {
+    border-left: 0;
+    border-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+}

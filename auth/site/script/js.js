@@ -96,26 +96,154 @@ function initLoginPage() {
 
 
 // ========================================================================
-// |                             PÁGINA DASHBOARD                         |
+// |                     PÁGINA DASHBOARD (MODIFICADA)                    |
 // ========================================================================
 async function initDashboardPage() {
+    // --- Referências aos elementos da página ---
+    const countOsAbertas = document.getElementById('count-os-abertas');
+    const countOsAndamento = document.getElementById('count-os-andamento');
+    const countOsFinalizadas = document.getElementById('count-os-finalizadas');
+    const countClientes = document.getElementById('count-clientes');
+    const listaOsAbertas = document.getElementById('lista-os-abertas');
+    const listaOsAndamento = document.getElementById('lista-os-andamento');
+    const listaOsFinalizadas = document.getElementById('lista-os-finalizadas');
+    const listaClientes = document.getElementById('lista-clientes');
+
     try {
-        const response = await fetch(`${API_BASE_URL}/dashboard_api.php`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        // --- Carrega todos os dados necessários em paralelo ---
+        const [dashboardResponse, osResponse, clientesResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/dashboard_api.php`),
+            fetch(`${API_BASE_URL}/os_api.php`),
+            fetch(`${API_BASE_URL}/clientes_api.php`)
+        ]);
+
+        if (!dashboardResponse.ok || !osResponse.ok || !clientesResponse.ok) {
+            throw new Error('Falha ao carregar um ou mais recursos da API.');
+        }
+
+        const dashboardData = await dashboardResponse.json();
+        const ordensDeServico = await osResponse.json();
+        const clientes = await clientesResponse.json();
         
-        document.getElementById('card-os-abertas').textContent = data.os_abertas;
-        document.getElementById('card-os-finalizadas').textContent = data.os_finalizadas;
-        document.getElementById('card-clientes').textContent = data.total_clientes;
+        // --- 1. Atualiza os contadores nos botões ---
+        countOsAbertas.textContent = dashboardData.os_abertas;
+        countOsFinalizadas.textContent = dashboardData.os_finalizadas;
+        countClientes.textContent = dashboardData.total_clientes;
+
+        // --- 2. Popula a lista de OS Abertas ---
+        const osAbertas = ordensDeServico.filter(os => ['Aberta', 'Em Andamento', 'Aguardando Peças'].includes(os.status));
+        listaOsAbertas.innerHTML = ''; // Limpa o spinner
+        if (osAbertas.length > 0) {
+            // Pega as 5 mais recentes
+            osAbertas.slice(-5).reverse().forEach(os => {
+                const item = `<li class="list-group-item">
+                                <strong>OS #${os.id}</strong> - ${os.cliente_nome}<br>
+                                <small class="text-muted">${os.equipamento} - Status: ${os.status}</small>
+                              </li>`;
+                listaOsAbertas.innerHTML += item;
+            });
+        } else {
+            listaOsAbertas.innerHTML = '<li class="list-group-item text-center">Nenhuma OS aberta no momento.</li>';
+        }
+
+        // --- 3.1. (NOVO) Popula a lista de OS em Andamento ---
+        const osEmAndamento = ordensDeServico.filter(os => os.status === 'Em Andamento');
+        countOsAndamento.textContent = osEmAndamento.length; // <-- ATUALIZA O CONTADOR
+        listaOsAndamento.innerHTML = '';
+        if (osEmAndamento.length > 0) {
+            osEmAndamento.slice(-5).reverse().forEach(os => {
+                const item = `<li class="list-group-item">
+                                <strong>OS #${os.id}</strong> - ${os.cliente_nome}<br>
+                                <small class="text-muted">${os.equipamento}</small>
+                              </li>`;
+                listaOsAndamento.innerHTML += item;
+            });
+        } else {
+            listaOsAndamento.innerHTML = '<li class="list-group-item text-center">Nenhuma OS em andamento.</li>';
+        }
+
+        // --- 3. Popula a lista de OS Finalizadas ---
+        const osFinalizadas = ordensDeServico.filter(os => os.status === 'Concluída');
+        listaOsFinalizadas.innerHTML = ''; // Limpa o spinner
+        if (osFinalizadas.length > 0) {
+            // Pega as 5 mais recentes
+            osFinalizadas.slice(-5).reverse().forEach(os => {
+                const dataSaida = new Date(os.data_saida).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                const item = `<li class="list-group-item">
+                                <strong>OS #${os.id}</strong> - ${os.cliente_nome}<br>
+                                <small class="text-muted">${os.equipamento} - Finalizada em: ${dataSaida}</small>
+                              </li>`;
+                listaOsFinalizadas.innerHTML += item;
+            });
+        } else {
+            listaOsFinalizadas.innerHTML = '<li class="list-group-item text-center">Nenhuma OS foi finalizada ainda.</li>';
+        }
+        
+        // --- 4. Popula a lista de Últimos Clientes ---
+        listaClientes.innerHTML = ''; // Limpa o spinner
+        if (clientes.length > 0) {
+            // Pega os 5 mais recentes
+            clientes.slice(-5).reverse().forEach(cliente => {
+                const item = `<li class="list-group-item">
+                                <strong>${cliente.nome}</strong><br>
+                                <small class="text-muted">${cliente.telefone || 'Telefone não informado'}</small>
+                              </li>`;
+                listaClientes.innerHTML += item;
+            });
+        } else {
+            listaClientes.innerHTML = '<li class="list-group-item text-center">Nenhum cliente cadastrado.</li>';
+        }
+
     } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
+        listaOsAbertas.innerHTML = '<li class="list-group-item text-center text-danger">Erro ao carregar dados.</li>';
+        listaOsAndamento.innerHTML = '<li class="list-group-item text-center text-danger">Erro ao carregar dados.</li>';
+        listaOsFinalizadas.innerHTML = '<li class="list-group-item text-center text-danger">Erro ao carregar dados.</li>';
+        listaClientes.innerHTML = '<li class="list-group-item text-center text-danger">Erro ao carregar dados.</li>';
     }
+    
+    // --- 5. Adiciona a lógica de navegação aos botões ---
+    // Esta função simula o clique no menu lateral para manter a consistência da UI
+    const navigateTo = (selector) => {
+        try {
+            // Acessa o documento pai (index.html) e encontra o link no sidebar
+            const link = window.parent.document.querySelector(selector);
+            if (link) {
+                link.click(); // Simula o clique
+            } else {
+                console.error(`Link de navegação não encontrado: ${selector}`);
+            }
+        } catch(e) {
+            console.error("Erro ao tentar navegar. Certifique-se que a página está dentro de um iframe.", e);
+        }
+    };
+    
+    document.getElementById('btn-nav-os-abertas').addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('a[href="pages/gerenciar_os.html"]');
+    });
+
+    document.getElementById('btn-nav-os-andamento').addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('a[href="pages/gerenciar_os.html"]');
+    });
+    
+    document.getElementById('btn-nav-os-finalizadas').addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('a[href="pages/gerenciar_os.html"]');
+    });
+
+    document.getElementById('btn-nav-clientes').addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateTo('a[href="pages/clientes.html"]');
+    });
 }
 
 // ========================================================================
 // |                             PÁGINA DE SERVIÇOS                       |
 // ========================================================================
 function initServicosPage() {
+    // ... (código existente, sem alterações)
     const tableBody = document.getElementById('servicos-table-body');
     const modal = new bootstrap.Modal(document.getElementById('servicoModal'));
     const form = document.getElementById('form-servico');
@@ -215,6 +343,7 @@ function initServicosPage() {
 // |                             PÁGINA DE CLIENTES                       |
 // ========================================================================
 function initClientesPage() {
+    // ... (código existente, sem alterações)
     const tableBody = document.getElementById('clientes-table-body');
     const modal = new bootstrap.Modal(document.getElementById('clienteModal'));
     const form = document.getElementById('form-cliente');
@@ -295,8 +424,8 @@ function initClientesPage() {
 // ========================================================================
 // |                          PÁGINA GERENCIAR OS                         |
 // ========================================================================
-// =========== INÍCIO DAS MODIFICAÇÕES =================================
 async function initGerenciarOsPage() {
+    // ... (código existente, sem alterações)
     const tableBody = document.getElementById('os-table-body');
     const editModalElement = document.getElementById('editOsModal');
     if (!editModalElement) return;
@@ -473,8 +602,6 @@ async function initGerenciarOsPage() {
             };
 
             let newExitDate = null;
-            // Se o novo status é 'Concluída', define a data de saída.
-            // Se o status anterior era 'Concluída' e mudou para outro, a data de saída é removida (null).
             if (newStatus === 'Concluída') {
                 newExitDate = getTodayISO();
             }
@@ -492,7 +619,6 @@ async function initGerenciarOsPage() {
                     body: JSON.stringify(quickUpdateData)
                 });
                 
-                // Tratamento de erro robusto para evitar falhas de JSON.parse
                 const responseText = await response.text();
                 if (!response.ok) {
                     try {
@@ -515,7 +641,7 @@ async function initGerenciarOsPage() {
             }
         }
 
-        if (!button) return; // Se não for um botão (e não for o link de status), para aqui.
+        if (!button) return;
         
         const row = button.closest('tr');
         const osId = row.dataset.osId;
@@ -654,12 +780,12 @@ async function initGerenciarOsPage() {
     carregarOrdens();
     carregarServicosParaModal();
 }
-// =========== FIM DAS MODIFICAÇÕES =================================
 
 // ========================================================================
 // |                            PÁGINA ABRIR OS                           |
 // ========================================================================
 function initAbrirOsPage() {
+    // ... (código existente, sem alterações)
     const form = document.getElementById('os-form');
     const clienteIdInput = document.getElementById('cliente_id');
     const clienteNomeInput = document.getElementById('cliente_nome');
