@@ -89,6 +89,73 @@ try {
             }
             $data = json_decode(file_get_contents('php://input'), true);
 
+            // Verifica se é uma atualização rápida de status e executa ANTES da lógica completa
+            if (isset($data['quick_update']) && $data['quick_update'] === true) {
+                try {
+                    $sql_quick_update = "UPDATE ordens_servico SET status = ?, data_saida = ? WHERE id = ?";
+                    $stmt_quick_update = $pdo->prepare($sql_quick_update);
+                    $stmt_quick_update->execute([
+                        $data['status'],
+                        $data['data_saida'], // PDO lida com o valor NULL corretamente
+                        $id
+                    ]);
+                    // Deleta o PDF antigo ao concluir ou reabrir, forçando a geração de um novo se necessário
+                    $filename = "OS-" . $id . ".pdf";
+                    $filepath = __DIR__ . '/pdfs/' . $filename;
+                    if (file_exists($filepath)) {
+                        @unlink($filepath);
+                    }
+                    echo json_encode(['success' => true]);
+                } catch (Exception $e) {
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'error' => 'Erro ao fazer atualização rápida: ' . $e->getMessage()]);
+                }
+                exit; // Termina o script aqui para não executar a lógica de atualização completa
+                }
+            $pdo->beginTransaction();
+
+            $clienteId = $data['clienteId'] ?? null;
+
+            if (empty($clienteId)) {
+                $stmtBusca = $pdo->prepare("SELECT id FROM clientes WHERE nome = ? AND telefone = ?");
+                $stmtBusca->execute([$data['clienteNome'], $data['clienteTelefone']]);
+                $clienteExistente = $stmtBusca->fetch();
+
+                if ($clienteExistente) {
+                    $clienteId = $clienteExistente['id'];
+                } else {
+                    $sqlCliente = "INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)";
+                    $stmtCliente = $pdo->prepare($sqlCliente);
+                    $stmtCliente->execute([$data['clienteNome'], $data['clienteTelefone'], $data['clienteEmail']]);
+                    $clienteId = $pdo->lastInsertId();
+                }
+            }
+            
+            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status) 
+                      VALUES (?, ?, ?, ?, ?, 'Aberta')";
+            $stmtOs = $pdo->prepare($sqlOs);
+            $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total']]);
+            $osId = $pdo->lastInsertId();
+
+            $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
+            $stmtOsServicos = $pdo->prepare($sqlOsServicos);
+            
+            foreach ($data['servicos'] as $servico) {
+                $stmtOsServicos->execute([$osId, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
+            }
+
+            $pdo->commit();
+            echo json_encode(['success' => true, 'os_id' => $osId, 'cliente_id' => $clienteId]);
+            break;
+
+        case 'PUT':
+            if (!$id) {
+                http_response_code(400);
+                echo json_encode(['error' => 'ID da OS não fornecido.']);
+                exit;
+            }
+            $data = json_decode(file_get_contents('php://input'), true);
+
             $pdo->beginTransaction();
 
             // 1. Atualiza a OS principal

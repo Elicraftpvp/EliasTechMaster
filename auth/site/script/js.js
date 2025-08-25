@@ -38,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // |                             PÁGINA DE LOGIN                          |
 // ========================================================================
 function initLoginPage() {
-    // Continua pegando a referência do formulário para pegar os inputs depois
     const loginForm = document.getElementById('login-form'); 
     if (!loginForm) return;
 
@@ -47,10 +46,7 @@ function initLoginPage() {
     const errorDiv = document.getElementById('login-error');
     const loginButton = document.getElementById('login-button');
 
-    // **** MUDANÇA AQUI ****
-    // Trocamos 'loginForm.addEventListener('submit', ...)' por 'loginButton.addEventListener('click', ...)'
     loginButton.addEventListener('click', async (e) => {
-        // O preventDefault() ainda é útil caso algum comportamento inesperado ocorra, mas não é mais crítico.
         e.preventDefault(); 
         
         errorDiv.classList.add('d-none');
@@ -69,7 +65,6 @@ function initLoginPage() {
         }
 
         try {
-            // A página de login está em 'auth/', então o caminho para a API é './site/php/auth_api.php'
             const response = await fetch(`./site/php/auth_api.php`, {
                 method: 'POST',
                 headers: {
@@ -86,7 +81,6 @@ function initLoginPage() {
             
             if (result.success) {
                 sessionStorage.setItem('usuarioLogado', JSON.stringify(result.usuario));
-                // A partir de 'login.html', o caminho para 'index.html' é para dentro da pasta 'site'
                 window.location.href = './site/index.html';
             }
 
@@ -301,6 +295,7 @@ function initClientesPage() {
 // ========================================================================
 // |                          PÁGINA GERENCIAR OS                         |
 // ========================================================================
+// =========== INÍCIO DAS MODIFICAÇÕES =================================
 async function initGerenciarOsPage() {
     const tableBody = document.getElementById('os-table-body');
     const editModalElement = document.getElementById('editOsModal');
@@ -323,9 +318,8 @@ async function initGerenciarOsPage() {
     const btnAdicionarServico = document.getElementById('edit-add-servico-btn');
     const btnSalvarAlteracoes = document.getElementById('salvar-edit-os-btn');
 
-    let listaDeServicos = []; // Cache para a lista de serviços
+    let listaDeServicos = [];
 
-    // --- Função auxiliar para atualizar totais no modal de edição ---
     const updateEditTotals = () => {
         let total = 0;
         editServicosTableBody.querySelectorAll('tr').forEach(row => {
@@ -338,9 +332,8 @@ async function initGerenciarOsPage() {
         editTotalElement.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    // --- Função para carregar serviços no dropdown do modal ---
     const carregarServicosParaModal = async () => {
-        if (listaDeServicos.length > 0) return; // Evita recarregar
+        if (listaDeServicos.length > 0) return;
         try {
             const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
             listaDeServicos = await response.json();
@@ -354,17 +347,14 @@ async function initGerenciarOsPage() {
         }
     };
     
-    // --- Lógica para adicionar/remover serviços no modal ---
     btnAdicionarServico.addEventListener('click', () => {
         const servicoId = editServicosSelect.value;
         if (!servicoId || servicoId === 'Selecione um serviço...') return;
-
         const servico = listaDeServicos.find(s => s.id == servicoId);
         if (editServicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
             alert('Este serviço já foi adicionado.');
             return;
         }
-        
         const valorFormatado = parseFloat(servico.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         const row = `
             <tr data-id="${servico.id}" data-valor="${servico.valor}">
@@ -391,30 +381,61 @@ async function initGerenciarOsPage() {
 
     // --- Função principal para carregar a lista de OS ---
     const carregarOrdens = async () => {
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm"></div></td></tr>`;
         try {
             const response = await fetch(`${API_BASE_URL}/os_api.php`);
+            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             const ordens = await response.json();
+            
             tableBody.innerHTML = '';
             if(ordens.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="text-center">Nenhuma Ordem de Serviço encontrada.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center">Nenhuma Ordem de Serviço encontrada.</td></tr>`;
                 return;
             }
+
+            const statusInfo = {
+                'Aberta': { class: 'bg-primary', text: 'Aberta' },
+                'Em Andamento': { class: 'bg-warning text-dark', text: 'Em Andamento' },
+                'Aguardando Peças': { class: 'bg-info text-dark', text: 'Aguard. Peças' },
+                'Concluída': { class: 'bg-success', text: 'Concluída' },
+                'Cancelada': { class: 'bg-danger', text: 'Cancelada' }
+            };
+
             ordens.forEach(os => {
-                const statusMap = { 'Aberta': 'bg-primary', 'Em Andamento': 'bg-warning text-dark', 'Aguardando Peças': 'bg-info text-dark', 'Concluída': 'bg-success', 'Cancelada': 'bg-danger' };
-                const statusClass = statusMap[os.status] || 'bg-secondary';
+                const currentStatusInfo = statusInfo[os.status] || { class: 'bg-secondary', text: os.status };
                 const dataEntrada = new Date(os.data_entrada).toLocaleDateString('pt-BR');
+                const dataSaida = os.data_saida ? new Date(os.data_saida).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '--';
                 const valorTotal = parseFloat(os.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+                // Lógica do novo botão dropdown de status
+                let statusDropdownHtml = '';
+                if (os.status !== 'Cancelada' && os.status !== 'Aguardando Peças') {
+                     statusDropdownHtml = `
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm ${currentStatusInfo.class} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                ${currentStatusInfo.text}
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aberta">Aberta</a></li>
+                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Em Andamento">Em Andamento</a></li>
+                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Concluída">Concluída</a></li>
+                            </ul>
+                        </div>`;
+                } else {
+                    // Para status não-editáveis, mostramos o badge normal
+                    statusDropdownHtml = `<span class="badge ${currentStatusInfo.class}">${currentStatusInfo.text}</span>`;
+                }
+
                 const row = `
-                    <tr data-os-id="${os.id}">
+                    <tr data-os-id="${os.id}" data-os-status="${os.status}">
                         <td>${os.id}</td>
                         <td>${os.cliente_nome}</td>
                         <td>${os.equipamento}</td>
                         <td>${dataEntrada}</td>
-                        <td><span class="badge ${statusClass}">${os.status}</span></td>
+                        <td>${dataSaida}</td>
+                        <td>${statusDropdownHtml}</td>
                         <td>${valorTotal}</td>
-                        <td>
+                        <td class="text-nowrap">
                             <button class="btn btn-sm btn-info btn-visualizar" title="Visualizar/Baixar PDF"><i class="fas fa-file-pdf"></i></button>
                             <button class="btn btn-sm btn-warning btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-sm btn-danger btn-delete" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -424,16 +445,78 @@ async function initGerenciarOsPage() {
                 tableBody.innerHTML += row;
             });
         } catch (error) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center">Erro ao carregar Ordens de Serviço.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center">Erro ao carregar Ordens de Serviço.</td></tr>`;
             console.error(error);
         }
     };
     
-    // --- Event listener para as ações na tabela principal (Visualizar, Editar, Excluir) ---
+    // Event listener para as ações na tabela
     tableBody.addEventListener('click', async (e) => {
-        const button = e.target.closest('button');
-        if (!button) return;
+        const button = e.target.closest('button:not(.dropdown-toggle)');
+        const link = e.target.closest('a.status-change-option');
 
+        // --- LÓGICA: MUDANÇA RÁPIDA DE STATUS PELO DROPDOWN ---
+        if (link) {
+            e.preventDefault();
+            const row = link.closest('tr');
+            const osId = row.dataset.osId;
+            const currentStatus = row.dataset.osStatus;
+            const newStatus = link.dataset.newStatus;
+
+            if (currentStatus === newStatus) return;
+
+            const getTodayISO = () => {
+                const today = new Date();
+                const offset = today.getTimezoneOffset();
+                const adjustedToday = new Date(today.getTime() - (offset * 60 * 1000));
+                return adjustedToday.toISOString().split('T')[0];
+            };
+
+            let newExitDate = null;
+            // Se o novo status é 'Concluída', define a data de saída.
+            // Se o status anterior era 'Concluída' e mudou para outro, a data de saída é removida (null).
+            if (newStatus === 'Concluída') {
+                newExitDate = getTodayISO();
+            }
+
+            const quickUpdateData = {
+                status: newStatus,
+                data_saida: newExitDate,
+                quick_update: true
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(quickUpdateData)
+                });
+                
+                // Tratamento de erro robusto para evitar falhas de JSON.parse
+                const responseText = await response.text();
+                if (!response.ok) {
+                    try {
+                        const errorResult = JSON.parse(responseText);
+                        throw new Error(errorResult.error || `Erro HTTP ${response.status}`);
+                    } catch (parseError) {
+                        console.error("Resposta do servidor (com erro):", responseText);
+                        throw new Error(`Erro no servidor. A resposta não é um JSON válido. Status: ${response.status}`);
+                    }
+                }
+                
+                const result = JSON.parse(responseText);
+                if (!result.success) throw new Error(result.error || 'Erro desconhecido ao atualizar.');
+
+                carregarOrdens();
+
+            } catch (error) {
+                alert('Erro ao atualizar status da OS: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        if (!button) return; // Se não for um botão (e não for o link de status), para aqui.
+        
         const row = button.closest('tr');
         const osId = row.dataset.osId;
 
@@ -442,7 +525,6 @@ async function initGerenciarOsPage() {
             button.disabled = true;
             button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             try {
-                // Modificado para usar GET e passar o ID na URL
                 const response = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${osId}`);
                 const result = await response.json();
                 if (result.success) {
@@ -463,12 +545,10 @@ async function initGerenciarOsPage() {
         // --- Lidar com Edição de OS ---
         if (button.classList.contains('btn-edit')) {
             try {
-                // Busca os dados completos da OS, incluindo serviços
                 const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`);
                 if (!response.ok) throw new Error('Não foi possível carregar os dados da OS.');
                 const osData = await response.json();
                 
-                // Preenche o modal
                 editOsIdInput.value = osData.id;
                 osIdModalSpan.textContent = osData.id;
                 editClienteNomeInput.value = osData.cliente_nome;
@@ -479,7 +559,7 @@ async function initGerenciarOsPage() {
                 editProblemaTextarea.value = osData.problema_relatado || '';
                 editLaudoTextarea.value = osData.laudo_tecnico || '';
 
-                editServicosTableBody.innerHTML = ''; // Limpa serviços anteriores
+                editServicosTableBody.innerHTML = '';
                 if (osData.servicos && osData.servicos.length > 0) {
                     osData.servicos.forEach(servico => {
                         const valorUnitarioF = parseFloat(servico.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -560,7 +640,7 @@ async function initGerenciarOsPage() {
 
             alert('Ordem de Serviço atualizada com sucesso!');
             editModal.hide();
-            carregarOrdens(); // Recarrega a lista para mostrar as alterações
+            carregarOrdens();
 
         } catch (error) {
             alert('Erro: ' + error.message);
@@ -574,13 +654,12 @@ async function initGerenciarOsPage() {
     carregarOrdens();
     carregarServicosParaModal();
 }
-
+// =========== FIM DAS MODIFICAÇÕES =================================
 
 // ========================================================================
 // |                            PÁGINA ABRIR OS                           |
 // ========================================================================
 function initAbrirOsPage() {
-    // ... (O código desta função permanece inalterado)
     const form = document.getElementById('os-form');
     const clienteIdInput = document.getElementById('cliente_id');
     const clienteNomeInput = document.getElementById('cliente_nome');
@@ -598,7 +677,6 @@ function initAbrirOsPage() {
     let listaDeServicos = [];
     let searchTimeout;
 
-    // --- LÓGICA DE BUSCA DE CLIENTE ---
     const handleClientSearch = async (event) => {
         const searchTerm = event.target.value;
         
@@ -661,7 +739,6 @@ function initAbrirOsPage() {
         }
     });
 
-    // --- LÓGICA DE SERVIÇOS E TOTAL ---
     const carregarServicos = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
@@ -731,7 +808,6 @@ function initAbrirOsPage() {
 
     btnLimpar.addEventListener('click', limparFormulario);
 
-    // --- LÓGICA PARA SALVAR A OS ---
     btnSalvarOS.addEventListener('click', async () => {
         const osData = {
             clienteId: clienteIdInput.value,
