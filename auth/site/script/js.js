@@ -1,14 +1,13 @@
-// Define o caminho base RELATIVO para todas as chamadas de API
+// O caminho relativo da pasta 'script' para a pasta 'php'
 const API_BASE_URL = '../php';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DO MENU LATERAL (PARA index.html) ---
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
-        // Lógica de proteção de rota: se não houver usuário no sessionStorage, volta para o login
         const loggedUser = sessionStorage.getItem('usuarioLogado');
         if (!loggedUser) {
-            window.location.href = '../../login.html'; // Ajuste o caminho se necessário
+            window.location.href = '../login.html'; 
             return;
         }
 
@@ -23,10 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- ROTEAMENTO DE LÓGICA PARA PÁGINAS INTERNAS ---
+    // --- ROTEAMENTO DE LÓGICA PARA PÁGINAS ---
     const pageId = document.body.id;
     switch (pageId) {
-        case 'page-login': initLoginPage(); break; // <-- NOVA ROTA ADICIONADA
+        case 'page-login': initLoginPage(); break;
         case 'page-dashboard': initDashboardPage(); break;
         case 'page-servicos': initServicosPage(); break;
         case 'page-clientes': initClientesPage(); break;
@@ -39,15 +38,22 @@ document.addEventListener('DOMContentLoaded', () => {
 // |                             PÁGINA DE LOGIN                          |
 // ========================================================================
 function initLoginPage() {
-    const loginForm = document.getElementById('login-form');
+    // Continua pegando a referência do formulário para pegar os inputs depois
+    const loginForm = document.getElementById('login-form'); 
+    if (!loginForm) return;
+
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const errorDiv = document.getElementById('login-error');
     const loginButton = document.getElementById('login-button');
 
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Impede o envio padrão do formulário
-        errorDiv.classList.add('d-none'); // Esconde erros anteriores
+    // **** MUDANÇA AQUI ****
+    // Trocamos 'loginForm.addEventListener('submit', ...)' por 'loginButton.addEventListener('click', ...)'
+    loginButton.addEventListener('click', async (e) => {
+        // O preventDefault() ainda é útil caso algum comportamento inesperado ocorra, mas não é mais crítico.
+        e.preventDefault(); 
+        
+        errorDiv.classList.add('d-none');
         loginButton.disabled = true;
         loginButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Entrando...`;
 
@@ -63,7 +69,8 @@ function initLoginPage() {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/auth_api.php`, {
+            // A página de login está em 'auth/', então o caminho para a API é './site/php/auth_api.php'
+            const response = await fetch(`./site/php/auth_api.php`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -78,9 +85,8 @@ function initLoginPage() {
             }
             
             if (result.success) {
-                // Salva os dados do usuário na sessão do navegador
                 sessionStorage.setItem('usuarioLogado', JSON.stringify(result.usuario));
-                // Redireciona para a página principal do sistema
+                // A partir de 'login.html', o caminho para 'index.html' é para dentro da pasta 'site'
                 window.location.href = './site/index.html';
             }
 

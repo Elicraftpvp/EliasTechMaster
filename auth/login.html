@@ -13,13 +13,12 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="./site/style/css.css">
 </head>
-<body id="page-login"> <!-- Adicionado ID para o roteador JS -->
+<body id="page-login">
 
     <div class="login-container">
         <div class="card login-card shadow-sm">
             <div class="card-body p-5">
                 <h3 class="card-title text-center mb-4">Sistema de OS</h3>
-                <!-- ID adicionado e 'action' removido -->
                 <form id="login-form">
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
@@ -30,11 +29,11 @@
                         <input type="password" class="form-control" id="password" required autocomplete="current-password">
                     </div>
                     
-                    <!-- Div para exibir mensagens de erro -->
                     <div id="login-error" class="alert alert-danger d-none mt-3" role="alert"></div>
 
                     <div class="d-grid mt-4">
-                        <button type="submit" id="login-button" class="btn btn-primary">Entrar</button>
+                        <!-- **** MUDANÇA AQUI **** -->
+                        <button type="button" id="login-button" class="btn btn-primary">Entrar</button>
                     </div>
                 </form>
             </div>
