@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erro 404 - Página Não Encontrada</title>
+    <style>
+        /* Paleta de Cores do Tema */
+        :root {
+            --primary-color: #51BE41; /* Verde Principal */
+            --primary-hover-color: #87F66C; /* Verde Secundário/Hover */
+            --sidebar-link-color: #adb5bd;
+            --sidebar-link-hover: #ffffff;
+            --content-bg: #f0f2f5;
+            --dark-bg: #f0f2f5;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: var(--sidebar-link-hover);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+            max-width: 600px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .error-code {
+            font-size: 10em;
+            font-weight: bold;
+            margin: 0;
+            margin-bottom: 20px;
+            animation: slideDown 0.8s ease-out forwards;
+            opacity: 0;
+            color: var(--primary-color);
+            letter-spacing: 5px;
+            text-shadow: 0 0 20px rgba(81, 190, 65, 0.6);
+        }
+
+        .error-message {
+            font-size: 2em;
+            margin: 10px 0 30px 0;
+            animation: fadeIn 0.8s ease-out 0.3s forwards;
+            opacity: 0;
+            color: var(--primary-color);
+        }
+
+        .logo {
+            max-width: 220px;
+            margin: 20px auto;
+            display: block;
+            animation: slideUp 0.8s ease-out 0.6s forwards;
+            opacity: 0;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(135, 246, 108, 0.3);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 40px;
+            padding: 14px 28px;
+            background-color: var(--primary-color);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            animation: fadeIn 0.8s ease-out 0.9s forwards;
+            opacity: 0;
+            box-shadow: 0 4px 10px rgba(81, 190, 65, 0.3);
+        }
+
+        .back-link:hover {
+            background-color: var(--primary-hover-color);
+            color: #1a1a1a;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(135, 246, 108, 0.5);
+        }
+
+        /* Keyframes para Animações */
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* Ajustes responsivos */
+        @media (max-width: 600px) {
+            .error-code {
+                font-size: 6em;
+            }
+
+            .error-message {
+                font-size: 1.5em;
+            }
+
+            .logo {
+                max-width: 150px;
+            }
+
+            .back-link {
+                font-size: 1em;
+                padding: 12px 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Código do erro -->
+        <h1 class="error-code">404</h1>
+
+        <!-- Mensagem explicativa -->
+        <p class="error-message">Você está no lugar errado</p>
+
+        <!-- Logo centralizada -->
+        <img src="images/logo.jpg" alt="Logo da Empresa" class="logo">
+
+        <!-- Botão de retorno -->
+        <a href="login.html" class="back-link">Voltar para a Página de Login</a>
+    </div>
+</body>
+</html>

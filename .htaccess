@@ -1,0 +1,34 @@
+# Ativar o mecanismo de reescrita do Apache
+RewriteEngine On
+
+# Definir página de erro 404 personalizada
+ErrorDocument 404 /404.html
+
+# Se o arquivo ou diretório não existir, redirecionar para a página 404
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^.*$ /404.html [L]
+
+# ===========================
+# CONFIGURAÇÕES DE CORS LIVRE
+# ===========================
+<IfModule mod_headers.c>
+    # Permitir qualquer origem
+    Header set Access-Control-Allow-Origin "*"
+
+    # Permitir métodos HTTP comuns
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+
+    # Permitir todos os cabeçalhos
+    Header set Access-Control-Allow-Headers "*"
+
+    # Forçar o navegador a aceitar CORS para requisições cruzadas
+    Header always set Access-Control-Allow-Credentials "true"
+</IfModule>
+
+# ===========================
+# TRATAR REQUISIÇÕES OPTIONS
+# ===========================
+# Isso ajuda em pesquisas e chamadas AJAX entre domínios
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
