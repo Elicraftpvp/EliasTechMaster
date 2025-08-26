@@ -1,10 +1,13 @@
 <?php
 header('Content-Type: application/json');
 ini_set('display_errors', 1);
-error_reporting(E_ALL);
+// Reporta todos os erros, EXCETO os avisos de "deprecated".
+error_reporting(E_ALL & ~E_DEPRECATED);
 
-require 'conexao.php'; // Conexão com o banco é necessária para o método GET
+require 'conexao.php'; 
+require 'pix_helper.php';
 
+// Verifica se o autoload do Composer existe
 $autoloadPath = __DIR__ . '/../vendor/autoload.php';
 if (!file_exists($autoloadPath)) {
     http_response_code(500);
@@ -16,6 +19,12 @@ require $autoloadPath;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
+/**
+ * Gera o conteúdo HTML e o converte para PDF.
+ * @param array $data Dados da OS, cliente e serviços.
+ * @param string $numeroOS Número formatado da Ordem de Serviço.
+ * @return string Conteúdo binário do PDF.
+ */
 function generatePdf(array $data, string $numeroOS) {
     $servicosHtml = '';
     foreach ($data['servicos'] ?? [] as $servico) {
@@ -34,10 +43,55 @@ function generatePdf(array $data, string $numeroOS) {
         ";
     }
     
-    $totalFormatado = number_format((float) ($data['valor_total'] ?? $data['total'] ?? 0), 2, ',', '.');
+    $totalFloat = (float) ($data['valor_total'] ?? $data['total'] ?? 0);
+    $totalFormatado = number_format($totalFloat, 2, ',', '.');
+
+    $pixHtml = '';
+    if ($totalFloat > 0) {
+        $chavePix = "+5548998339706";
+        $nomeBeneficiario = "ELIAS GUSTAVO KERSTEN";
+        $cidadeBeneficiario = "SAO JOSE";
+        $txid = preg_replace('/[^a-zA-Z0-9]/', '', $numeroOS);
+        $codigoPix = gerarCodigoPIX($chavePix, $nomeBeneficiario, $cidadeBeneficiario, $totalFloat, $txid);
+        $qrCodeBase64 = gerarQRCodeBase64($codigoPix);
+
+        $pixHtml = "
+            <div class='pix-section'>
+                <div class='section-title'>Pagamento via PIX</div>
+                <table class='pix-table'>
+                    <tr>
+                        <td class='qr-code-cell'>
+                            <img src='" . $qrCodeBase64 . "' alt='QR Code PIX' style='width: 140px; height: 140px;'>
+                        </td>
+                        <td class='pix-details-cell'>
+                            <strong>PIX Copia e Cola:</strong>
+                            <textarea readonly class='pix-code'>" . $codigoPix . "</textarea>
+                            <small>Aponte a câmera do seu celular para o QR Code ou use o código acima.</small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        ";
+    }
+
     $html = "
     <!DOCTYPE html><html><head><meta charset='UTF-8'><style>
-        body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; } .header { text-align: center; margin-bottom: 20px; } .company-details { font-size: 11px; } .section-title { font-weight: bold; font-size: 14px; color: #51BE41; padding-bottom: 5px; border-bottom: 2px solid #51BE41; margin-bottom: 10px; } .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } .info-table td { border: 1px solid #ccc; padding: 6px; } .info-table td.label { font-weight: bold; width: 100px; background-color: #f2f2f2; } .services-table { width: 100%; border-collapse: collapse; margin-top: 10px; } .services-table th, .services-table td { border: 1px solid #ccc; padding: 6px; text-align: left; } .services-table th { background-color: #f2f2f2; font-weight: bold; } .total-line { text-align: right; margin-top: 20px; font-size: 16px; font-weight: bold; }
+        body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; } 
+        .header { text-align: center; margin-bottom: 20px; } 
+        .company-details { font-size: 11px; } 
+        .section-title { font-weight: bold; font-size: 14px; color: #51BE41; padding-bottom: 5px; border-bottom: 2px solid #51BE41; margin-bottom: 10px; } 
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
+        .info-table td { border: 1px solid #ccc; padding: 6px; } 
+        .info-table td.label { font-weight: bold; width: 100px; background-color: #f2f2f2; } 
+        .services-table { width: 100%; border-collapse: collapse; margin-top: 10px; } 
+        .services-table th, .services-table td { border: 1px solid #ccc; padding: 6px; text-align: left; } 
+        .services-table th { background-color: #f2f2f2; font-weight: bold; } 
+        .total-line { text-align: right; margin-top: 20px; font-size: 16px; font-weight: bold; }
+        .pix-section { margin-top: 40px; }
+        .pix-table { width: 100%; border-collapse: collapse; }
+        .qr-code-cell { width: 150px; padding-right: 15px; vertical-align: top; }
+        .pix-details-cell { vertical-align: top; }
+        .pix-code { width: 100%; height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
     </style></head><body>
         <div class='header'><h3>Elias TechMaster Reparos</h3><div class='company-details'>Rua Pedro Paulo de Abreu, 801 Forquilhinhas - São José/SC<br>E-mail: eliasgkersten@gmail.com | Fone: (48) 99833-9706</div></div>
         <table class='info-table'><tr><td style='width: 50%;'><strong>Nº OS:</strong> " . htmlspecialchars($numeroOS) . "</td><td style='width: 50%;'><strong>Emissão:</strong> " . date('d/m/Y') . "</td></tr></table>
@@ -54,6 +108,7 @@ function generatePdf(array $data, string $numeroOS) {
         <div class='section-title'>Serviços Realizados</div>
         <table class='services-table'><thead><tr><th>Descrição</th><th style='width: 50px;'>Qtd.</th><th style='width: 100px;'>Valor Unit.</th><th style='width: 100px;'>Subtotal</th></tr></thead><tbody>" . $servicosHtml . "</tbody></table>
         <div class='total-line'>TOTAL: R$ " . $totalFormatado . "</div>
+        " . $pixHtml . "
     </body></html>";
 
     $options = new Options();
@@ -77,16 +132,22 @@ try {
             exit;
         }
 
-        $filename = "OS-" . $osId . ".pdf";
-        $filepath = __DIR__ . '/pdfs/' . $filename;
+        // Apaga arquivos PDF antigos no diretório para manutenção geral (opcional mas recomendado)
+        // Isso remove arquivos com mais de 5 minutos, caso algum comando de exclusão falhe.
         $pdfDir = __DIR__ . '/pdfs';
-
-        if (file_exists($filepath)) {
-            echo json_encode(['success' => true, 'fileName' => $filename]);
-            exit;
+        if (is_dir($pdfDir)) {
+            foreach (glob($pdfDir . "/*.pdf") as $oldFile) {
+                if(time() - filemtime($oldFile) > 300) { // 300 segundos = 5 minutos
+                    unlink($oldFile);
+                }
+            }
         }
-
-        // Se o PDF não existe, busca dados e gera
+        
+        // Define o caminho do arquivo
+        $filename = "OS-" . uniqid() . "-" . $osId . ".pdf"; // Adicionado uniqid() para evitar conflitos
+        $filepath = $pdfDir . '/' . $filename;
+        
+        // Busca os dados no banco
         $stmt_os = $pdo->prepare("SELECT os.*, c.nome as cliente_nome, c.telefone as cliente_telefone, c.email as cliente_email FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
         $stmt_os->execute([$osId]);
         $data = $stmt_os->fetch(PDO::FETCH_ASSOC);
@@ -101,33 +162,29 @@ try {
         $stmt_servicos->execute([$osId]);
         $data['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
+        // Gera o conteúdo do PDF
         $pdfContent = generatePdf($data, 'OS-' . $osId);
         
+        // Salva o arquivo PDF no servidor
         if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
         file_put_contents($filepath, $pdfContent);
         
-        echo json_encode(['success' => true, 'fileName' => $filename]);
-
-    } elseif ($method === 'POST') {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!$data || !isset($data['os_id'])) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Dados inválidos ou ID da OS não recebido.']);
-            exit;
+        // ############### INÍCIO DA MUDANÇA ###############
+        // Agenda a exclusão do arquivo em 15 segundos em segundo plano.
+        // Isso funciona em ambientes baseados em Linux/Unix.
+        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') { // Verifica se não é Windows
+            $segundosParaExcluir = 15;
+            // escapeshellarg garante que o caminho do arquivo é seguro para ser usado no comando
+            $safeFilepath = escapeshellarg($filepath);
+            // Comando: (espere X segundos E delete o arquivo) > redireciona a saída para o "buraco negro" & roda em segundo plano
+            $command = "(sleep " . $segundosParaExcluir . " && rm " . $safeFilepath . ") > /dev/null 2>&1 &";
+            shell_exec($command);
         }
+        // ################ FIM DA MUDANÇA #################
         
-        $osId = $data['os_id'];
-        $numeroOS = 'OS-' . $osId;
-        $filename = $numeroOS . '.pdf';
-        $filepath = __DIR__ . '/pdfs/' . $filename;
-        $pdfDir = __DIR__ . '/pdfs';
-        
-        $pdfContent = generatePdf($data, $numeroOS);
-        
-        if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
-        file_put_contents($filepath, $pdfContent);
-
+        // Responde ao front-end com o nome do arquivo para download
         echo json_encode(['success' => true, 'fileName' => $filename]);
+
     } else {
         http_response_code(405);
         echo json_encode(['success' => false, 'error' => 'Método não permitido']);
