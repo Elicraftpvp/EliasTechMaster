@@ -1,6 +1,7 @@
 // site/script/abrir_os.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Referências aos elementos do formulário
     const form = document.getElementById('os-form');
     const clienteIdInput = document.getElementById('cliente_id');
     const clienteNomeInput = document.getElementById('cliente_nome');
@@ -9,59 +10,156 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchResultsDiv = document.getElementById('search-results');
     
     const servicosSelect = document.getElementById('servicos-select');
+    const addServicoBtn = document.getElementById('add-servico-btn');
     const servicosTableBody = document.getElementById('servicos-selecionados-body');
-    const totalElement = document.getElementById('total-os');
-    const btnAdicionarServico = document.getElementById('add-servico-btn');
-    const btnSalvarOS = document.getElementById('salvar-os-btn');
-    const btnLimpar = document.getElementById('limpar-form-btn');
+    const totalOsElement = document.getElementById('total-os');
+    
+    const salvarBtn = document.getElementById('salvar-os-btn');
+    const limparBtn = document.getElementById('limpar-form-btn');
 
     let listaDeServicos = [];
     let searchTimeout;
 
-    const handleClientSearch = async (searchTerm) => {
-        if (searchTerm.length < 2) {
-            searchResultsDiv.style.display = 'none';
-            return;
-        }
+    // --- CARREGAMENTO INICIAL ---
+    const carregarServicos = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/clientes_api.php?search=${encodeURIComponent(searchTerm)}`);
-            const clientes = await response.json();
-            searchResultsDiv.innerHTML = '';
-            if (clientes.length > 0) {
-                clientes.forEach(cliente => {
-                    const item = document.createElement('div');
-                    item.className = 'search-result-item';
-                    item.textContent = `${cliente.nome} - ${cliente.telefone || 'N/A'}`;
-                    item.dataset.id = cliente.id;
-                    item.dataset.nome = cliente.nome;
-                    item.dataset.telefone = cliente.telefone || '';
-                    item.dataset.email = cliente.email || '';
-                    searchResultsDiv.appendChild(item);
-                });
-                searchResultsDiv.style.display = 'block';
-            } else {
-                searchResultsDiv.style.display = 'none';
-            }
+            const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
+            listaDeServicos = await response.json();
+            servicosSelect.innerHTML = '<option selected disabled>Selecione um serviço ou desconto...</option>';
+            listaDeServicos.forEach(s => {
+                let displayText = `${s.nome}`;
+                if (s.tipo === 'servico' || s.tipo === 'desconto_fixo') {
+                    displayText += ` - ${parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                } else if (s.tipo === 'desconto_percentual') {
+                    displayText += ` - ${s.valor}%`;
+                }
+                servicosSelect.innerHTML += `<option value="${s.id}">${displayText}</option>`;
+            });
         } catch (error) {
-            console.error('Erro ao buscar clientes:', error);
+            console.error("Erro ao carregar serviços:", error);
+            servicosSelect.innerHTML = '<option>Erro ao carregar</option>';
         }
     };
 
-    clienteNomeInput.addEventListener('input', (e) => {
-        clienteIdInput.value = ''; // Limpa o ID se o usuário digitar um novo nome
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => handleClientSearch(e.target.value), 300);
+    // --- LÓGICA DE CÁLCULO DE TOTAL ---
+    const updateTotal = () => {
+        let subtotalServicos = 0;
+        let totalDescontoFixo = 0;
+        let totalDescontoPercentual = 0;
+
+        servicosTableBody.querySelectorAll('tr').forEach(row => {
+            const qtd = parseFloat(row.querySelector('.qtd-servico').value) || 1;
+            const valorUnitario = parseFloat(row.dataset.valor);
+            const tipo = row.dataset.tipo;
+            let subtotal = qtd * valorUnitario;
+
+            if (tipo === 'servico') {
+                subtotalServicos += subtotal;
+                row.querySelector('.subtotal').textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            } else if (tipo === 'desconto_fixo') {
+                totalDescontoFixo += subtotal;
+                // Exibe como negativo
+                row.querySelector('.subtotal').textContent = `-${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            } else if (tipo === 'desconto_percentual') {
+                totalDescontoPercentual += subtotal; // Soma as porcentagens
+                row.querySelector('.subtotal').textContent = `${subtotal.toFixed(2)}%`;
+            }
+        });
+        
+        const valorDoDescontoPercentual = subtotalServicos * (totalDescontoPercentual / 100);
+        const totalFinal = subtotalServicos - totalDescontoFixo - valorDoDescontoPercentual;
+        
+        totalOsElement.textContent = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
+    // --- MANIPULAÇÃO DE SERVIÇOS ---
+    addServicoBtn.addEventListener('click', () => {
+        const servicoId = servicosSelect.value;
+        if (!servicoId || servicoId.startsWith('Selecione')) return;
+
+        const servico = listaDeServicos.find(s => s.id == servicoId);
+        if (!servico) return;
+
+        // Evita adicionar o mesmo item duas vezes
+        if (servicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
+            alert('Este item já foi adicionado.');
+            return;
+        }
+
+        let valorDisplay, subtotalDisplay;
+        const valorUnit = parseFloat(servico.valor);
+        
+        if(servico.tipo === 'desconto_percentual') {
+            valorDisplay = `${valorUnit.toFixed(2)}%`;
+            subtotalDisplay = `${valorUnit.toFixed(2)}%`;
+        } else if (servico.tipo === 'desconto_fixo') {
+            valorDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            subtotalDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        } else { // tipo 'servico'
+            valorDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            subtotalDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        const row = `
+            <tr data-id="${servico.id}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
+                <td>${servico.nome}</td>
+                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${servico.tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
+                <td>${valorDisplay}</td>
+                <td class="subtotal">${subtotalDisplay}</td>
+                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
+            </tr>`;
+        servicosTableBody.insertAdjacentHTML('beforeend', row);
+        updateTotal();
     });
 
-    searchResultsDiv.addEventListener('click', (e) => {
-        const item = e.target.closest('.search-result-item');
-        if (item) {
-            clienteIdInput.value = item.dataset.id;
-            clienteNomeInput.value = item.dataset.nome;
-            clienteTelefoneInput.value = item.dataset.telefone;
-            clienteEmailInput.value = item.dataset.email;
-            searchResultsDiv.style.display = 'none';
+    servicosTableBody.addEventListener('input', e => {
+        if (e.target.classList.contains('qtd-servico')) {
+            updateTotal();
         }
+    });
+
+    servicosTableBody.addEventListener('click', e => {
+        if (e.target.classList.contains('remover-servico')) {
+            e.target.closest('tr').remove();
+            updateTotal();
+        }
+    });
+
+    // --- BUSCA DE CLIENTES ---
+    clienteNomeInput.addEventListener('keyup', () => {
+        clearTimeout(searchTimeout);
+        const query = clienteNomeInput.value;
+        if (query.length < 2) {
+            searchResultsDiv.style.display = 'none';
+            return;
+        }
+        searchTimeout = setTimeout(async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/clientes_api.php?search=${query}`);
+                const clientes = await response.json();
+                searchResultsDiv.innerHTML = '';
+                if (clientes.length > 0) {
+                    clientes.forEach(cliente => {
+                        const div = document.createElement('div');
+                        div.className = 'search-result-item';
+                        div.textContent = `${cliente.nome} - ${cliente.telefone || 'Sem telefone'}`;
+                        div.addEventListener('click', () => {
+                            clienteIdInput.value = cliente.id;
+                            clienteNomeInput.value = cliente.nome;
+                            clienteTelefoneInput.value = cliente.telefone || '';
+                            clienteEmailInput.value = cliente.email || '';
+                            searchResultsDiv.style.display = 'none';
+                        });
+                        searchResultsDiv.appendChild(div);
+                    });
+                    searchResultsDiv.style.display = 'block';
+                } else {
+                    searchResultsDiv.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erro na busca de clientes:', error);
+            }
+        }, 300);
     });
 
     document.addEventListener('click', (e) => {
@@ -70,74 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const carregarServicos = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
-            listaDeServicos = await response.json();
-            servicosSelect.innerHTML = '<option selected disabled>Selecione um serviço...</option>';
-            listaDeServicos.forEach(s => {
-                const valorF = parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                servicosSelect.innerHTML += `<option value="${s.id}">${s.nome} - ${valorF}</option>`;
-            });
-        } catch (error) {
-            console.error("Erro ao carregar serviços:", error);
-        }
-    };
-
-    const updateTotals = () => {
-        let total = 0;
-        servicosTableBody.querySelectorAll('tr').forEach(row => {
-            const qtd = parseInt(row.querySelector('.qtd-servico').value) || 0;
-            const valorUnitario = parseFloat(row.dataset.valor);
-            const subtotal = qtd * valorUnitario;
-            row.querySelector('.subtotal').innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            total += subtotal;
-        });
-        totalElement.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    };
-
-    btnAdicionarServico.addEventListener('click', () => {
-        const servicoId = servicosSelect.value;
-        if (!servicoId || servicoId === 'Selecione um serviço...') return;
-        const servico = listaDeServicos.find(s => s.id == servicoId);
-        if (servicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
-            alert('Este serviço já foi adicionado.');
-            return;
-        }
-        const valorFormatado = parseFloat(servico.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        const row = `
-            <tr data-id="${servico.id}" data-valor="${servico.valor}">
-                <td>${servico.nome}</td>
-                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1"></td>
-                <td>${valorFormatado}</td>
-                <td class="subtotal">${valorFormatado}</td>
-                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
-            </tr>`;
-        servicosTableBody.innerHTML += row;
-        updateTotals();
-    });
-
-    servicosTableBody.addEventListener('input', e => {
-        if (e.target.classList.contains('qtd-servico')) updateTotals();
-    });
-
-    servicosTableBody.addEventListener('click', e => {
-        if (e.target.classList.contains('remover-servico')) {
-            e.target.closest('tr').remove();
-            updateTotals();
-        }
-    });
-    
-    const limparFormulario = () => {
+    // --- SALVAR E LIMPAR ---
+    limparBtn.addEventListener('click', () => {
         form.reset();
-        clienteIdInput.value = '';
         servicosTableBody.innerHTML = '';
-        updateTotals();
-    };
+        clienteIdInput.value = '';
+        updateTotal();
+    });
 
-    btnLimpar.addEventListener('click', limparFormulario);
-
-    btnSalvarOS.addEventListener('click', async () => {
+    salvarBtn.addEventListener('click', async () => {
         const osData = {
             clienteId: clienteIdInput.value,
             clienteNome: clienteNomeInput.value,
@@ -146,52 +185,51 @@ document.addEventListener('DOMContentLoaded', () => {
             equipamento: document.getElementById('equipamento').value,
             problema: document.getElementById('problema').value,
             laudo: document.getElementById('laudo').value,
-            total: parseFloat(totalElement.innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()),
+            total: parseFloat(totalOsElement.textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()),
             servicos: Array.from(servicosTableBody.querySelectorAll('tr')).map(row => ({
                 id: row.dataset.id,
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
-                subtotal: parseFloat(row.querySelector('.subtotal').innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim())
+                tipo: row.dataset.tipo,
+                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
             }))
         };
-
+        
         if (!osData.clienteNome || !osData.equipamento || osData.servicos.length === 0) {
-            alert('Preencha o nome do cliente, o equipamento e adicione pelo menos um serviço.');
+            alert('Cliente, Equipamento e pelo menos um Serviço/Desconto são obrigatórios.');
             return;
         }
-
-        btnSalvarOS.disabled = true;
-        btnSalvarOS.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Salvando...`;
+        
+        salvarBtn.disabled = true;
+        salvarBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
 
         try {
-            const saveResponse = await fetch(`${API_BASE_URL}/os_api.php`, {
+            const response = await fetch(`${API_BASE_URL}/os_api.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(osData)
             });
-            const saveResult = await saveResponse.json();
-            if (!saveResponse.ok) throw new Error(saveResult.error || `Falha ao salvar a OS. Status: ${saveResponse.status}`);
-            
-            alert('Ordem de Serviço salva com sucesso! ID: ' + saveResult.os_id);
-            
-            const pdfResponse = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${saveResult.os_id}`);
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Erro desconhecido ao salvar.');
+
+            // Gerar PDF
+            const pdfResponse = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${result.os_id}`);
             const pdfResult = await pdfResponse.json();
-            if(pdfResult.success) {
+            if (pdfResult.success) {
                 window.open(`../php/pdfs/${pdfResult.fileName}`, '_blank');
+                limparBtn.click();
             } else {
-                alert('OS salva, mas houve um erro ao gerar o PDF: ' + pdfResult.error);
+                alert(`OS salva (Nº ${result.os_id}), mas houve um erro ao gerar o PDF: ${pdfResult.error}`);
             }
-            
-            limparFormulario();
 
         } catch (error) {
-            alert('Erro: ' + error.message);
+            alert('Erro ao salvar OS: ' + error.message);
         } finally {
-            btnSalvarOS.disabled = false;
-            btnSalvarOS.innerHTML = `<i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS`;
+            salvarBtn.disabled = false;
+            salvarBtn.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS';
         }
     });
 
+    // Iniciar
     carregarServicos();
-    updateTotals();
 });

@@ -16,7 +16,7 @@ try {
                                        JOIN clientes c ON os.cliente_id = c.id 
                                        WHERE os.id = ?");
                 $stmt->execute([$id]);
-                $os = $stmt->fetch();
+                $os = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if (!$os) {
                     http_response_code(404);
@@ -24,12 +24,16 @@ try {
                     exit;
                 }
 
-                $stmt_servicos = $pdo->prepare("SELECT os_s.*, s.nome as servico_nome 
+                // MODIFICAÇÃO AQUI: Adicionamos s.tipo e s.valor para referência no frontend
+                $stmt_servicos = $pdo->prepare("SELECT os_s.*, 
+                                                       s.nome as servico_nome, 
+                                                       s.tipo as servico_tipo,
+                                                       s.valor as valor_catalogo 
                                                 FROM os_servicos os_s
                                                 JOIN servicos s ON os_s.servico_id = s.id
                                                 WHERE os_s.os_id = ?");
                 $stmt_servicos->execute([$id]);
-                $os['servicos'] = $stmt_servicos->fetchAll();
+                $os['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
                 echo json_encode($os);
             } else {
@@ -39,7 +43,7 @@ try {
                         JOIN clientes c ON os.cliente_id = c.id
                         ORDER BY os.id DESC";
                 $stmt = $pdo->query($sql);
-                echo json_encode($stmt->fetchAll());
+                echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
             }
             break;
         
@@ -49,7 +53,6 @@ try {
 
             $clienteId = $data['clienteId'] ?? null;
 
-            // Se o ID do cliente não foi passado (novo cliente ou não selecionado), cria um novo
             if (empty($clienteId)) {
                 $stmtBusca = $pdo->prepare("SELECT id FROM clientes WHERE nome = ? AND telefone = ?");
                 $stmtBusca->execute([$data['clienteNome'], $data['clienteTelefone']]);
@@ -75,6 +78,7 @@ try {
             $stmtOsServicos = $pdo->prepare($sqlOsServicos);
             
             foreach ($data['servicos'] as $servico) {
+                // O subtotal de descontos não é relevante da mesma forma, mas guardamos o valor calculado
                 $stmtOsServicos->execute([$osId, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
             }
 
@@ -83,24 +87,26 @@ try {
             break;
 
         case 'PUT':
-            if (!$id) {
+             if (!$id) {
                 http_response_code(400);
                 echo json_encode(['error' => 'ID da OS não fornecido.']);
                 exit;
             }
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // VERIFICA SE É UMA ATUALIZAÇÃO RÁPIDA DE STATUS (do dropdown na tabela)
+            // ATUALIZAÇÃO RÁPIDA DE STATUS (do dropdown na tabela)
             if (isset($data['quick_update']) && $data['quick_update'] === true) {
                 $sql_quick_update = "UPDATE ordens_servico SET status = ?, data_saida = ? WHERE id = ?";
                 $stmt_quick_update = $pdo->prepare($sql_quick_update);
+                
+                $data_saida = ($data['status'] === 'Concluída' || $data['status'] === 'Cancelada') ? date('Y-m-d H:i:s') : null;
+
                 $stmt_quick_update->execute([
                     $data['status'],
-                    $data['data_saida'], // PDO lida com o valor NULL corretamente
+                    $data_saida, 
                     $id
                 ]);
                 
-                // Deleta o PDF antigo para forçar a geração de um novo, se necessário
                 $filename = "OS-" . $id . ".pdf";
                 $filepath = __DIR__ . '/pdfs/' . $filename;
                 if (file_exists($filepath)) {
@@ -108,11 +114,10 @@ try {
                 }
                 echo json_encode(['success' => true]);
 
-            // SE NÃO FOR UMA ATUALIZAÇÃO RÁPIDA, É UMA ATUALIZAÇÃO COMPLETA (do modal)
+            // ATUALIZAÇÃO COMPLETA (do modal)
             } else {
                 $pdo->beginTransaction();
 
-                // 1. Atualiza a OS principal
                 $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
                 $stmt_update = $pdo->prepare($sql_update);
                 $stmt_update->execute([
@@ -124,11 +129,9 @@ try {
                     $id
                 ]);
 
-                // 2. Deleta os serviços antigos associados a essa OS
                 $stmt_delete_servicos = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
                 $stmt_delete_servicos->execute([$id]);
 
-                // 3. Insere os novos serviços (ou os mesmos, atualizados)
                 $sql_insert_servicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
                 $stmt_insert_servicos = $pdo->prepare($sql_insert_servicos);
                 foreach ($data['servicos'] as $servico) {
@@ -137,7 +140,6 @@ try {
 
                 $pdo->commit();
 
-                // 4. Deleta o PDF antigo para forçar a geração de um novo
                 $filename = "OS-" . $id . ".pdf";
                 $filepath = __DIR__ . '/pdfs/' . $filename;
                 if (file_exists($filepath)) {
@@ -155,24 +157,17 @@ try {
                 exit;
             }
             $pdo->beginTransaction();
-            
-            // Deleta primeiro os serviços associados
             $stmt1 = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
             $stmt1->execute([$id]);
-
-            // Deleta a OS principal
             $stmt2 = $pdo->prepare("DELETE FROM ordens_servico WHERE id = ?");
             $stmt2->execute([$id]);
-
             $pdo->commit();
             
-            // Também deleta o PDF ao excluir a OS
             $filename = "OS-" . $id . ".pdf";
             $filepath = __DIR__ . '/pdfs/' . $filename;
             if (file_exists($filepath)) {
                 @unlink($filepath);
             }
-
             echo json_encode(['success' => true]);
             break;
         

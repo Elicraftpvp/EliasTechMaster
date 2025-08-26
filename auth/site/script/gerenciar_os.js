@@ -1,5 +1,3 @@
-// site/script/gerenciar_os.js
-
 document.addEventListener('DOMContentLoaded', async () => {
     const tableBody = document.getElementById('os-table-body');
     const editModalElement = document.getElementById('editOsModal');
@@ -24,51 +22,93 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let listaDeServicos = [];
 
+    // --- LÓGICA DE CÁLCULO DE TOTAL (MODAL) ---
     const updateEditTotals = () => {
-        let total = 0;
+        let subtotalServicos = 0;
+        let totalDescontoFixo = 0;
+        let totalDescontoPercentual = 0;
+
         editServicosTableBody.querySelectorAll('tr').forEach(row => {
-            const qtd = parseInt(row.querySelector('.qtd-servico').value) || 0;
+            const qtd = parseFloat(row.querySelector('.qtd-servico').value) || 1;
             const valorUnitario = parseFloat(row.dataset.valor);
-            const subtotal = qtd * valorUnitario;
-            row.querySelector('.subtotal').innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            total += subtotal;
+            const tipo = row.dataset.tipo;
+            let subtotal = qtd * valorUnitario;
+
+            if (tipo === 'servico') {
+                subtotalServicos += subtotal;
+                row.querySelector('.subtotal').textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            } else if (tipo === 'desconto_fixo') {
+                totalDescontoFixo += subtotal;
+                row.querySelector('.subtotal').textContent = `-${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            } else if (tipo === 'desconto_percentual') {
+                totalDescontoPercentual += subtotal;
+                row.querySelector('.subtotal').textContent = `${subtotal.toFixed(2)}%`;
+            }
         });
-        editTotalElement.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const valorDoDescontoPercentual = subtotalServicos * (totalDescontoPercentual / 100);
+        const totalFinal = subtotalServicos - totalDescontoFixo - valorDoDescontoPercentual;
+        
+        editTotalElement.textContent = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
+    // --- CARREGAMENTO DE DADOS ---
     const carregarServicosParaModal = async () => {
         if (listaDeServicos.length > 0) return;
         try {
             const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
             listaDeServicos = await response.json();
-            editServicosSelect.innerHTML = '<option selected disabled>Selecione um serviço...</option>';
+            editServicosSelect.innerHTML = '<option selected disabled>Selecione um serviço ou desconto...</option>';
             listaDeServicos.forEach(s => {
-                const valorF = parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                editServicosSelect.innerHTML += `<option value="${s.id}">${s.nome} - ${valorF}</option>`;
+                let displayText = `${s.nome}`;
+                if (s.tipo === 'servico' || s.tipo === 'desconto_fixo') {
+                    displayText += ` - ${parseFloat(s.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                } else if (s.tipo === 'desconto_percentual') {
+                    displayText += ` - ${s.valor}%`;
+                }
+                editServicosSelect.innerHTML += `<option value="${s.id}">${displayText}</option>`;
             });
         } catch (error) {
             console.error("Erro ao carregar serviços para o modal:", error);
         }
     };
     
+    // --- MANIPULAÇÃO DE SERVIÇOS (MODAL) ---
     btnAdicionarServico.addEventListener('click', () => {
         const servicoId = editServicosSelect.value;
-        if (!servicoId || servicoId === 'Selecione um serviço...') return;
+        if (!servicoId || servicoId.startsWith('Selecione')) return;
+        
         const servico = listaDeServicos.find(s => s.id == servicoId);
+        if (!servico) return;
+        
         if (editServicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
-            alert('Este serviço já foi adicionado.');
+            alert('Este item já foi adicionado.');
             return;
         }
-        const valorFormatado = parseFloat(servico.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        let valorDisplay, subtotalDisplay;
+        const valorUnit = parseFloat(servico.valor);
+        
+        if(servico.tipo === 'desconto_percentual') {
+            valorDisplay = `${valorUnit.toFixed(2)}%`;
+            subtotalDisplay = `${valorUnit.toFixed(2)}%`;
+        } else if (servico.tipo === 'desconto_fixo') {
+            valorDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            subtotalDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        } else {
+            valorDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            subtotalDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
         const row = `
-            <tr data-id="${servico.id}" data-valor="${servico.valor}">
+            <tr data-id="${servico.id}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
                 <td>${servico.nome}</td>
-                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1"></td>
-                <td>${valorFormatado}</td>
-                <td class="subtotal">${valorFormatado}</td>
+                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${servico.tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
+                <td>${valorDisplay}</td>
+                <td class="subtotal">${subtotalDisplay}</td>
                 <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
             </tr>`;
-        editServicosTableBody.innerHTML += row;
+        editServicosTableBody.insertAdjacentHTML('beforeend', row);
         updateEditTotals();
     });
 
@@ -97,35 +137,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const statusInfo = {
-                'Aberta': { class: 'bg-primary', text: 'Aberta' },
-                'Em Andamento': { class: 'bg-warning text-dark', text: 'Em Andamento' },
-                'Aguardando Peças': { class: 'bg-info text-dark', text: 'Aguard. Peças' },
-                'Concluída': { class: 'bg-success', text: 'Concluída' },
-                'Cancelada': { class: 'bg-danger', text: 'Cancelada' }
+                'Aberta': { class: 'bg-primary' },
+                'Em Andamento': { class: 'bg-warning text-dark' },
+                'Aguardando Peças': { class: 'bg-info text-dark' },
+                'Concluída': { class: 'bg-success' },
+                'Cancelada': { class: 'bg-danger' }
             };
 
             ordens.forEach(os => {
-                const currentStatusInfo = statusInfo[os.status] || { class: 'bg-secondary', text: os.status };
-                const dataEntrada = new Date(os.data_entrada).toLocaleDateString('pt-BR');
+                const currentStatusInfo = statusInfo[os.status] || { class: 'bg-secondary' };
+                const dataEntrada = new Date(os.data_entrada).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
                 const dataSaida = os.data_saida ? new Date(os.data_saida).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '--';
                 const valorTotal = parseFloat(os.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-                let statusDropdownHtml = `<span class="badge ${currentStatusInfo.class}">${currentStatusInfo.text}</span>`;
-                if (os.status !== 'Cancelada' && os.status !== 'Aguardando Peças') {
-                     statusDropdownHtml = `
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm ${currentStatusInfo.class} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${currentStatusInfo.text}</button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aberta">Aberta</a></li>
-                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Em Andamento">Em Andamento</a></li>
-                                <li><a class="dropdown-item status-change-option" href="#" data-new-status="Concluída">Concluída</a></li>
-                            </ul>
-                        </div>`;
-                }
+                const statusDropdownHtml = `
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm ${currentStatusInfo.class} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${os.status}</button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aberta">Aberta</a></li>
+                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Em Andamento">Em Andamento</a></li>
+                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aguardando Peças">Aguardando Peças</a></li>
+                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Concluída">Concluída</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Cancelada">Cancelada</a></li>
+                        </ul>
+                    </div>`;
 
                 const row = `
-                    <tr data-os-id="${os.id}" data-os-status="${os.status}">
-                        <td>${os.id}</td>
+                    <tr data-os-id="${os.id}">
+                        <td>${String(os.id).padStart(4, '0')}</td>
                         <td>${os.cliente_nome}</td>
                         <td>${os.equipamento}</td>
                         <td>${dataEntrada}</td>
@@ -141,28 +181,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tableBody.innerHTML += row;
             });
         } catch (error) {
-            tableBody.innerHTML = `<tr><td colspan="8" class="text-center">Erro ao carregar Ordens de Serviço.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Erro ao carregar Ordens de Serviço.</td></tr>`;
             console.error(error);
         }
     };
     
+    // --- EVENTOS NA TABELA PRINCIPAL ---
     tableBody.addEventListener('click', async (e) => {
-        const button = e.target.closest('button:not(.dropdown-toggle)');
-        const link = e.target.closest('a.status-change-option');
-
-        if (link) {
+        const target = e.target;
+        
+        // Mudança rápida de status
+        if (target.classList.contains('status-change-option')) {
             e.preventDefault();
-            const row = link.closest('tr');
+            const row = target.closest('tr');
             const osId = row.dataset.osId;
-            const newStatus = link.dataset.newStatus;
-
-            const getTodayISO = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            const newStatus = target.dataset.newStatus;
             
-            const quickUpdateData = {
-                status: newStatus,
-                data_saida: newStatus === 'Concluída' ? getTodayISO() : null,
-                quick_update: true
-            };
+            const quickUpdateData = { status: newStatus, quick_update: true };
 
             try {
                 const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, {
@@ -171,18 +206,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     body: JSON.stringify(quickUpdateData)
                 });
                 const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'Erro desconhecido ao atualizar.');
-                carregarOrdens();
+                if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
+                await carregarOrdens();
             } catch (error) {
                 alert('Erro ao atualizar status da OS: ' + error.message);
             }
         }
 
+        const button = target.closest('button');
         if (!button) return;
         
         const row = button.closest('tr');
         const osId = row.dataset.osId;
 
+        // Visualizar PDF
         if (button.classList.contains('btn-visualizar')) {
             button.disabled = true;
             button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
@@ -202,13 +239,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        // Editar OS
         if (button.classList.contains('btn-edit')) {
             try {
                 const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`);
+                if(!response.ok) throw new Error('OS não encontrada ou erro na API');
                 const osData = await response.json();
                 
                 editOsIdInput.value = osData.id;
-                osIdModalSpan.textContent = osData.id;
+                osIdModalSpan.textContent = String(osData.id).padStart(4, '0');
                 editClienteNomeInput.value = osData.cliente_nome;
                 editClienteTelefoneInput.value = osData.cliente_telefone || '';
                 editClienteEmailInput.value = osData.cliente_email || '';
@@ -220,33 +259,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                 editServicosTableBody.innerHTML = '';
                 if (osData.servicos && osData.servicos.length > 0) {
                     osData.servicos.forEach(servico => {
-                        const valorUnitarioF = parseFloat(servico.valor_unitario).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        const subtotalF = parseFloat(servico.subtotal).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                        const row = `
-                            <tr data-id="${servico.servico_id}" data-valor="${servico.valor_unitario}">
+                        let valorDisplay, subtotalDisplay;
+                        const valorUnit = parseFloat(servico.valor_unitario);
+                        
+                        if(servico.servico_tipo === 'desconto_percentual') {
+                            valorDisplay = `${valorUnit.toFixed(2)}%`;
+                            subtotalDisplay = `${(valorUnit * servico.quantidade).toFixed(2)}%`;
+                        } else if (servico.servico_tipo === 'desconto_fixo') {
+                            valorDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                            subtotalDisplay = `-${(valorUnit * servico.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                        } else {
+                            valorDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            subtotalDisplay = (valorUnit * servico.quantidade).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                        }
+
+                        const rowHTML = `
+                            <tr data-id="${servico.servico_id}" data-valor="${servico.valor_unitario}" data-tipo="${servico.servico_tipo}">
                                 <td>${servico.servico_nome}</td>
-                                <td><input type="number" class="form-control form-control-sm qtd-servico" value="${servico.quantidade}" min="1"></td>
-                                <td>${valorUnitarioF}</td>
-                                <td class="subtotal">${subtotalF}</td>
+                                <td><input type="number" class="form-control form-control-sm qtd-servico" value="${servico.quantidade}" min="1" ${servico.servico_tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
+                                <td>${valorDisplay}</td>
+                                <td class="subtotal">${subtotalDisplay}</td>
                                 <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
                             </tr>`;
-                        editServicosTableBody.innerHTML += row;
+                        editServicosTableBody.innerHTML += rowHTML;
                     });
                 }
                 updateEditTotals();
                 editModal.show();
             } catch (error) {
-                alert('Erro: ' + error.message);
+                alert('Erro ao carregar dados da OS: ' + error.message);
             }
         }
 
+        // Deletar OS
         if (button.classList.contains('btn-delete')) {
             if (confirm(`Deseja realmente excluir a Ordem de Serviço Nº ${osId}?`)) {
                  try {
                     const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (!result.success) throw new Error(result.error || 'Erro desconhecido');
-                    carregarOrdens();
+                    await carregarOrdens();
                 } catch (error) {
                     alert('Erro ao excluir a OS: ' + error.message);
                 }
@@ -254,6 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- SALVAR EDIÇÃO ---
     btnSalvarAlteracoes.addEventListener('click', async () => {
         const osId = editOsIdInput.value;
         const osData = {
@@ -266,12 +319,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 id: row.dataset.id,
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
-                subtotal: parseFloat(row.querySelector('.subtotal').innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim())
+                tipo: row.dataset.tipo,
+                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
             }))
         };
 
         if (!osData.equipamento || osData.servicos.length === 0) {
-            alert('O equipamento e pelo menos um serviço são obrigatórios.');
+            alert('O equipamento e pelo menos um serviço/desconto são obrigatórios.');
             return;
         }
 
@@ -285,9 +339,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify(osData)
             });
             const result = await response.json();
-            if (!result.success) throw new Error(result.error || 'Erro desconhecido ao salvar.');
+            if (!result.success) throw new Error(result.error || 'Erro ao salvar.');
             editModal.hide();
-            carregarOrdens();
+            await carregarOrdens();
         } catch (error) {
             alert('Erro: ' + error.message);
         } finally {
