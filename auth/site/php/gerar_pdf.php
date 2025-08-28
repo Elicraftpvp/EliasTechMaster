@@ -26,18 +26,15 @@ use Dompdf\Options;
  * @return string Conteúdo binário do PDF.
  */
 function generatePdf(array $data, string $numeroOS) {
-    // --- INÍCIO DA MODIFICAÇÃO: Carregar e preparar a imagem do logo ---
     $logoHtml = '';
-    $imagePath = __DIR__ . '/../images/logo.jpg'; // Caminho relativo para a imagem
+    $imagePath = __DIR__ . '/../images/logo.jpg'; 
 
     if (file_exists($imagePath)) {
-        // Converte a imagem para Base64 para embutir no HTML. É a forma mais confiável.
         $imageData = base64_encode(file_get_contents($imagePath));
         $imageMime = mime_content_type($imagePath);
         $logoSrc = 'data:' . $imageMime . ';base64,' . $imageData;
         $logoHtml = "<img src='" . $logoSrc . "' alt='Logo' class='logo-img'>";
     }
-    // --- FIM DA MODIFICAÇÃO ---
 
     $servicosHtml = '';
     foreach ($data['servicos'] ?? [] as $servico) {
@@ -92,12 +89,14 @@ function generatePdf(array $data, string $numeroOS) {
         body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; } 
         .header { text-align: center; margin-bottom: 15px; } 
         
-        /* --- INÍCIO DA MODIFICAÇÃO: Novos estilos para o cabeçalho --- */
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
         .logo-cell { width: 30%; vertical-align: top; }
-        .logo-img { max-width: 160px; height: auto; }
-        .company-details-cell { width: 70%; text-align: right; vertical-align: top; font-size: 11px; padding-top: 5px; }
-        /* --- FIM DA MODIFICAÇÃO --- */
+        
+        /* --- ALTERAÇÃO 1: Imagem menor --- */
+        .logo-img { max-width: 120px; height: auto; }
+        
+        /* --- ALTERAÇÃO 2: Texto do cabeçalho maior --- */
+        .company-details-cell { width: 70%; text-align: right; vertical-align: top; font-size: 13px; padding-top: 5px; line-height: 1.4; }
 
         .section-title { font-weight: bold; font-size: 14px; color: #51BE41; padding-bottom: 5px; border-bottom: 2px solid #51BE41; margin-bottom: 10px; } 
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
@@ -114,7 +113,6 @@ function generatePdf(array $data, string $numeroOS) {
         .pix-code { width: 100%; height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
     </style></head><body>
         
-        <!-- --- INÍCIO DA MODIFICAÇÃO: Estrutura do cabeçalho alterada --- -->
         <div class='header'><h3>Elias TechMaster Reparos</h3></div>
         <table class='header-table'>
             <tr>
@@ -129,7 +127,6 @@ function generatePdf(array $data, string $numeroOS) {
                 </td>
             </tr>
         </table>
-        <!-- --- FIM DA MODIFICAÇÃO --- -->
 
         <table class='info-table'><tr><td style='width: 50%;'><strong>Nº OS:</strong> " . htmlspecialchars($numeroOS) . "</td><td style='width: 50%;'><strong>Emissão:</strong> " . date('d/m/Y') . "</td></tr></table>
         <div class='section-title'>Dados do Cliente</div>
@@ -169,17 +166,15 @@ try {
             exit;
         }
 
-        // Apaga arquivos PDF antigos no diretório para manutenção geral (opcional mas recomendado)
         $pdfDir = __DIR__ . '/pdfs';
         if (is_dir($pdfDir)) {
             foreach (glob($pdfDir . "/*.pdf") as $oldFile) {
-                if(time() - filemtime($oldFile) > 300) { // 300 segundos = 5 minutos
+                if(time() - filemtime($oldFile) > 300) { 
                     unlink($oldFile);
                 }
             }
         }
         
-        // Busca os dados no banco
         $stmt_os = $pdo->prepare("SELECT os.*, c.nome as cliente_nome, c.telefone as cliente_telefone, c.email as cliente_email FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
         $stmt_os->execute([$osId]);
         $data = $stmt_os->fetch(PDO::FETCH_ASSOC);
@@ -200,14 +195,11 @@ try {
         $stmt_servicos->execute([$osId]);
         $data['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
-        // Gera o conteúdo do PDF
         $pdfContent = generatePdf($data, 'OS-' . $osId);
         
-        // Salva o arquivo PDF no servidor
         if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
         file_put_contents($filepath, $pdfContent);
         
-        // Agenda a exclusão do arquivo
         if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
             $segundosParaExcluir = 15;
             $safeFilepath = escapeshellarg($filepath);
@@ -215,7 +207,6 @@ try {
             shell_exec($command);
         }
         
-        // Responde ao front-end com o nome do arquivo para download
         echo json_encode(['success' => true, 'fileName' => $filename]);
 
     } else {
