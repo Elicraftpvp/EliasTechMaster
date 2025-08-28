@@ -1,34 +1,54 @@
-# Ativar o mecanismo de reescrita do Apache
+# /php/.htaccess
+
+# ===========================
+# CONFIGURAÇÕES GERAIS DO APACHE
+# ===========================
+
+# Ativar o mecanismo de reescrita de URL
 RewriteEngine On
 
 # Definir página de erro 404 personalizada
+# Certifique-se de que o arquivo /404.html existe na raiz do seu site
 ErrorDocument 404 /404.html
 
-# Se o arquivo ou diretório não existir, redirecionar para a página 404
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^.*$ /404.html [L]
+# ===========================
+# CONFIGURAÇÕES DE CORS (Cross-Origin Resource Sharing)
+# ===========================
+# Essencial para permitir que o JavaScript (frontend) faça chamadas
+# para a API (backend), especialmente com métodos como PUT e DELETE.
 
-# ===========================
-# CONFIGURAÇÕES DE CORS LIVRE
-# ===========================
 <IfModule mod_headers.c>
-    # Permitir qualquer origem
+    # Permite que requisições de qualquer origem (domínio) acessem a API.
+    # Em produção, você pode querer restringir isso a um domínio específico.
     Header set Access-Control-Allow-Origin "*"
 
-    # Permitir métodos HTTP comuns
+    # Define explicitamente quais métodos HTTP são permitidos.
+    # Isso corrige o erro "405 Method Not Allowed".
     Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
 
-    # Permitir todos os cabeçalhos
-    Header set Access-Control-Allow-Headers "*"
-
-    # Forçar o navegador a aceitar CORS para requisições cruzadas
-    Header always set Access-Control-Allow-Credentials "true"
+    # Define quais cabeçalhos o cliente pode enviar na requisição.
+    # "Content-Type" é necessário para enviar JSON.
+    # "Authorization" é útil se você implementar tokens de autenticação no futuro.
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
 </IfModule>
 
 # ===========================
-# TRATAR REQUISIÇÕES OPTIONS
+# TRATAR REQUISIÇÕES PRE-FLIGHT (OPTIONS)
 # ===========================
-# Isso ajuda em pesquisas e chamadas AJAX entre domínios
+# Navegadores enviam uma requisição OPTIONS antes de PUT ou DELETE para
+# verificar as permissões de CORS. Esta regra responde com "OK" (200).
+
 RewriteCond %{REQUEST_METHOD} OPTIONS
 RewriteRule ^(.*)$ $1 [R=200,L]
+
+# ===========================
+# REGRA DE ROTEAMENTO PARA 404 (Manter no final)
+# ===========================
+# Se o arquivo ou diretório solicitado não existir fisicamente,
+# redireciona para a página 404.
+# ATENÇÃO: Esta regra pode interferir com APIs se não for usada com cuidado.
+# Se a API parar de funcionar, comente as 3 linhas abaixo para testar.
+
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^.*$ /404.html [L]
