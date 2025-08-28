@@ -26,6 +26,19 @@ use Dompdf\Options;
  * @return string Conteúdo binário do PDF.
  */
 function generatePdf(array $data, string $numeroOS) {
+    // --- INÍCIO DA MODIFICAÇÃO: Carregar e preparar a imagem do logo ---
+    $logoHtml = '';
+    $imagePath = __DIR__ . '/../images/logo.jpg'; // Caminho relativo para a imagem
+
+    if (file_exists($imagePath)) {
+        // Converte a imagem para Base64 para embutir no HTML. É a forma mais confiável.
+        $imageData = base64_encode(file_get_contents($imagePath));
+        $imageMime = mime_content_type($imagePath);
+        $logoSrc = 'data:' . $imageMime . ';base64,' . $imageData;
+        $logoHtml = "<img src='" . $logoSrc . "' alt='Logo' class='logo-img'>";
+    }
+    // --- FIM DA MODIFICAÇÃO ---
+
     $servicosHtml = '';
     foreach ($data['servicos'] ?? [] as $servico) {
         $descricaoServico = htmlspecialchars($servico['servico_nome'] ?? $servico['nome'] ?? 'Serviço');
@@ -77,8 +90,15 @@ function generatePdf(array $data, string $numeroOS) {
     $html = "
     <!DOCTYPE html><html><head><meta charset='UTF-8'><style>
         body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; } 
-        .header { text-align: center; margin-bottom: 20px; } 
-        .company-details { font-size: 11px; } 
+        .header { text-align: center; margin-bottom: 15px; } 
+        
+        /* --- INÍCIO DA MODIFICAÇÃO: Novos estilos para o cabeçalho --- */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .logo-cell { width: 30%; vertical-align: top; }
+        .logo-img { max-width: 160px; height: auto; }
+        .company-details-cell { width: 70%; text-align: right; vertical-align: top; font-size: 11px; padding-top: 5px; }
+        /* --- FIM DA MODIFICAÇÃO --- */
+
         .section-title { font-weight: bold; font-size: 14px; color: #51BE41; padding-bottom: 5px; border-bottom: 2px solid #51BE41; margin-bottom: 10px; } 
         .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
         .info-table td { border: 1px solid #ccc; padding: 6px; } 
@@ -93,7 +113,24 @@ function generatePdf(array $data, string $numeroOS) {
         .pix-details-cell { vertical-align: top; }
         .pix-code { width: 100%; height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
     </style></head><body>
-        <div class='header'><h3>Elias TechMaster Reparos</h3><div class='company-details'>Rua Pedro Paulo de Abreu, 801 Forquilhinhas - São José/SC<br>E-mail: eliasgkersten@gmail.com | Fone: (48) 99833-9706</div></div>
+        
+        <!-- --- INÍCIO DA MODIFICAÇÃO: Estrutura do cabeçalho alterada --- -->
+        <div class='header'><h3>Elias TechMaster Reparos</h3></div>
+        <table class='header-table'>
+            <tr>
+                <td class='logo-cell'>
+                    " . $logoHtml . "
+                </td>
+                <td class='company-details-cell'>
+                    <strong>Rua Pedro Paulo de Abreu, 801</strong><br>
+                    Forquilhinhas - São José/SC<br>
+                    <strong>E-mail:</strong> eliasgkersten@gmail.com<br>
+                    <strong>Fone:</strong> (48) 99833-9706
+                </td>
+            </tr>
+        </table>
+        <!-- --- FIM DA MODIFICAÇÃO --- -->
+
         <table class='info-table'><tr><td style='width: 50%;'><strong>Nº OS:</strong> " . htmlspecialchars($numeroOS) . "</td><td style='width: 50%;'><strong>Emissão:</strong> " . date('d/m/Y') . "</td></tr></table>
         <div class='section-title'>Dados do Cliente</div>
         <table class='info-table'>
@@ -133,7 +170,6 @@ try {
         }
 
         // Apaga arquivos PDF antigos no diretório para manutenção geral (opcional mas recomendado)
-        // Isso remove arquivos com mais de 5 minutos, caso algum comando de exclusão falhe.
         $pdfDir = __DIR__ . '/pdfs';
         if (is_dir($pdfDir)) {
             foreach (glob($pdfDir . "/*.pdf") as $oldFile) {
@@ -154,20 +190,11 @@ try {
             exit;
         }
 
-
-        // Pega o nome do equipamento ou usa um texto padrão caso não exista.
         $equipamentoNome = $data['equipamento'] ?? 'Equipamento';
-
-        // Sanitiza o nome do equipamento para criar um nome de arquivo seguro.
-        // 1. Substitui espaços e múltiplos hífens por um único hífen.
         $safeEquipamentoNome = preg_replace('/[\s-]+/', '-', $equipamentoNome);
-        // 2. Remove todos os caracteres que não são letras, números, hífens ou pontos.
         $safeEquipamentoNome = preg_replace('/[^A-Za-z0-9\-\.]/', '', $safeEquipamentoNome);
-
-        // Define o nome do arquivo no formato desejado: "OS-Equipamento.pdf"
         $filename = "OS " . $osId . " - " . $safeEquipamentoNome . ".pdf";
         $filepath = $pdfDir . '/' . $filename;
-
 
         $stmt_servicos = $pdo->prepare("SELECT os_s.*, s.nome as servico_nome FROM os_servicos os_s JOIN servicos s ON os_s.servico_id = s.id WHERE os_s.os_id = ?");
         $stmt_servicos->execute([$osId]);
@@ -180,13 +207,10 @@ try {
         if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
         file_put_contents($filepath, $pdfContent);
         
-        // Agenda a exclusão do arquivo em 15 segundos em segundo plano.
-        // Isso funciona em ambientes baseados em Linux/Unix.
-        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') { // Verifica se não é Windows
+        // Agenda a exclusão do arquivo
+        if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
             $segundosParaExcluir = 15;
-            // escapeshellarg garante que o caminho do arquivo é seguro para ser usado no comando
             $safeFilepath = escapeshellarg($filepath);
-            // Comando: (espere X segundos E delete o arquivo) > redireciona a saída para o "buraco negro" & roda em segundo plano
             $command = "(sleep " . $segundosParaExcluir . " && rm " . $safeFilepath . ") > /dev/null 2>&1 &";
             shell_exec($command);
         }
