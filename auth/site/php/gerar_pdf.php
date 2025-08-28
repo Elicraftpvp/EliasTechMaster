@@ -128,7 +128,7 @@ function generatePdf(array $data, string $numeroOS) {
         .pix-table { width: 100%; border-collapse: collapse; }
         .qr-code-cell { width: 150px; padding-right: 15px; vertical-align: top; }
         .pix-details-cell { vertical-align: top; }
-        .pix-code { width: 100%; height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
+        .pix-code { width: calc(100% - 12px); height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
     </style></head><body>
         
         <div class='header'>
