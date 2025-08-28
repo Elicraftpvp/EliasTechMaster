@@ -1,3 +1,5 @@
 vendor/
 auth/site/php/pdfs/
-php/
+pdfs/
+phpqrcode/
+!*.php
