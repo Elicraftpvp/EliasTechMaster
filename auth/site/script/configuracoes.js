@@ -1,7 +1,6 @@
 // script/configuracoes.js
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- SELEÇÃO DE ELEMENTOS ---
     const tableBody = document.getElementById('lista-usuarios');
     const usuarioModalElement = document.getElementById('usuarioModal');
     const modal = new bootstrap.Modal(usuarioModalElement);
@@ -9,13 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('usuarioModalLabel');
     const campoSenha = document.getElementById('usuario_senha');
 
-    // --- ESTADO ---
     let editMode = false;
     let editId = null;
 
-    // --- FUNÇÕES ---
-
-    // Carrega e exibe os usuários na tabela
     const carregarUsuarios = async () => {
         tableBody.innerHTML = `<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm"></div> Carregando...</td></tr>`;
         try {
@@ -48,25 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Prepara o modal para edição de um usuário
     const prepararEdicao = async (id) => {
         try {
             const response = await fetch(`${API_BASE_URL}/configuracoes_api.php?id=${id}`);
             if (!response.ok) throw new Error('Usuário não encontrado');
             const usuario = await response.json();
 
-            // Preenche o formulário
             document.getElementById('usuario_nome').value = usuario.nome;
             document.getElementById('usuario_email').value = usuario.email;
             document.getElementById('usuario_telefone').value = usuario.telefone || '';
             document.getElementById('usuario_endereco').value = usuario.endereco || '';
             
-            // Lógica da senha para edição
             campoSenha.value = '';
             campoSenha.placeholder = 'Deixe em branco para não alterar';
             campoSenha.removeAttribute('required');
 
-            // Configura o modo de edição
             editMode = true;
             editId = id;
             modalTitle.textContent = 'Editar Usuário';
@@ -78,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Reseta o modal para o estado de "Adicionar"
     const resetarModal = () => {
         form.reset();
         editMode = false;
@@ -88,11 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         campoSenha.setAttribute('required', 'required');
     };
 
-    // --- EVENT LISTENERS ---
-
-    // Listener para o botão SALVAR no modal (substitui o evento de submit do formulário)
+    // --- LISTENER DO BOTÃO SALVAR (COM CORREÇÃO) ---
     document.getElementById('salvar-usuario-btn').addEventListener('click', async () => {
         const data = {
+            id: editId, // Envia o ID no corpo para PUT e DELETE
             nome: document.getElementById('usuario_nome').value,
             email: document.getElementById('usuario_email').value,
             senha: campoSenha.value,
@@ -100,18 +89,19 @@ document.addEventListener('DOMContentLoaded', () => {
             endereco: document.getElementById('usuario_endereco').value,
         };
         
-        const url = editMode ? `${API_BASE_URL}/configuracoes_api.php?id=${editId}` : `${API_BASE_URL}/configuracoes_api.php`;
-        const method = editMode ? 'PUT' : 'POST';
+        // Se estiver em modo de edição, adiciona o sinal _method
+        if (editMode) {
+            data._method = 'PUT';
+        }
 
         try {
-            const response = await fetch(url, {
-                method: method,
+            const response = await fetch(`${API_BASE_URL}/configuracoes_api.php`, {
+                method: 'POST', // Sempre usa POST
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
 
             const result = await response.json();
-
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Erro ao salvar usuário.');
             }
@@ -125,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listener para cliques na tabela (usando delegação de eventos)
+    // --- LISTENER DA TABELA (COM CORREÇÃO) ---
     tableBody.addEventListener('click', async (e) => {
         const target = e.target.closest('button');
         if (!target) return;
@@ -135,7 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.classList.contains('btn-delete')) {
             if (confirm('Deseja realmente excluir este usuário?')) {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/configuracoes_api.php?id=${id}`, { method: 'DELETE' });
+                    const response = await fetch(`${API_BASE_URL}/configuracoes_api.php`, {
+                        method: 'POST', // Sempre usa POST
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: id, _method: 'DELETE' }) // Envia o sinal _method
+                    });
                     const result = await response.json();
                     if (!response.ok || !result.success) throw new Error(result.message);
                     alert(result.message);
@@ -150,9 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Limpa o modal sempre que ele for fechado
     usuarioModalElement.addEventListener('hidden.bs.modal', resetarModal);
-
-    // --- INICIALIZAÇÃO ---
     carregarUsuarios();
 });
