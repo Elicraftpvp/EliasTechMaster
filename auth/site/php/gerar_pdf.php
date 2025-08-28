@@ -22,7 +22,7 @@ use Dompdf\Options;
 /**
  * Gera o conteúdo HTML e o converte para PDF.
  * @param array $data Dados da OS, cliente e serviços.
- * @param string $numeroOS Número formatado da Ordem de Serviço.
+ *param string $numeroOS Número formatado da Ordem de Serviço.
  * @return string Conteúdo binário do PDF.
  */
 function generatePdf(array $data, string $numeroOS) {
@@ -84,36 +84,57 @@ function generatePdf(array $data, string $numeroOS) {
         ";
     }
 
+    // A tag <style> abaixo contém todas as modificações para compactar o layout.
     $html = "
     <!DOCTYPE html><html><head><meta charset='UTF-8'><style>
-        body { font-family: 'Helvetica', sans-serif; font-size: 12px; color: #333; } 
-        .header { text-align: center; margin-bottom: 15px; } 
-        
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .logo-cell { width: 30%; vertical-align: top; }
-        
-        /* --- ALTERAÇÃO 1: Imagem menor --- */
-        .logo-img { max-width: 120px; height: auto; }
-        
-        /* --- ALTERAÇÃO 2: Texto do cabeçalho maior --- */
-        .company-details-cell { width: 70%; text-align: right; vertical-align: top; font-size: 13px; padding-top: 5px; line-height: 1.4; }
+        @page { margin: 20px 25px; } /* MODIFICAÇÃO: Margens da página bem reduzidas */
 
-        .section-title { font-weight: bold; font-size: 14px; color: #51BE41; padding-bottom: 5px; border-bottom: 2px solid #51BE41; margin-bottom: 10px; } 
-        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; } 
-        .info-table td { border: 1px solid #ccc; padding: 6px; } 
+        body { font-family: 'Helvetica', sans-serif; font-size: 11px; color: #333; } /* MODIFICAÇÃO: Fonte ligeiramente menor para caber mais conteúdo */
+        
+        .header { text-align: center; margin-bottom: 5px; } /* MODIFICAÇÃO: Margem inferior reduzida */
+        
+        .header h3 {
+            font-size: 16px;
+            margin: 0 0 5px 0; /* MODIFICAÇÃO: Margem inferior reduzida */
+        }
+
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; } /* MODIFICAÇÃO: Margem inferior reduzida */
+        .logo-cell { width: 30%; vertical-align: top; }
+        .logo-img { max-width: 110px; height: auto; margin-top: -10px; } /* MODIFICAÇÃO: Ajuste fino no logo */
+        .company-details-cell { 
+            width: 70%; 
+            text-align: right; 
+            vertical-align: top; 
+            font-size: 12px; /* MODIFICAÇÃO: Tamanho da fonte ajustado */
+            padding-top: 0; /* MODIFICAÇÃO: Removido padding superior */
+            line-height: 1.3; /* MODIFICAÇÃO: Altura da linha ajustada */
+        }
+
+        .section-title { font-weight: bold; font-size: 13px; color: #51BE41; padding-bottom: 4px; border-bottom: 1.5px solid #51BE41; margin-bottom: 8px; } /* MODIFICAÇÃO: Estilo geral ajustado */
+        
+        .section-content { margin-top: 0; margin-bottom: 15px; } /* MODIFICAÇÃO: Classe para controlar espaçamento dos parágrafos */
+
+        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; } /* MODIFICAÇÃO: Margem inferior reduzida */
+        .info-table td { border: 1px solid #ccc; padding: 5px; } /* MODIFICAÇÃO: Padding reduzido */
         .info-table td.label { font-weight: bold; width: 100px; background-color: #f2f2f2; } 
-        .services-table { width: 100%; border-collapse: collapse; margin-top: 10px; } 
-        .services-table th, .services-table td { border: 1px solid #ccc; padding: 6px; text-align: left; } 
+        
+        .services-table { width: 100%; border-collapse: collapse; margin-top: 5px; } /* MODIFICAÇÃO: Margem superior reduzida */
+        .services-table th, .services-table td { border: 1px solid #ccc; padding: 5px; text-align: left; } /* MODIFICAÇÃO: Padding reduzido */
         .services-table th { background-color: #f2f2f2; font-weight: bold; } 
-        .total-line { text-align: right; margin-top: 20px; font-size: 16px; font-weight: bold; }
-        .pix-section { margin-top: 40px; }
+        
+        .total-line { text-align: right; margin-top: 15px; font-size: 15px; font-weight: bold; } /* MODIFICAÇÃO: Margem e fonte ajustadas */
+        
+        .pix-section { margin-top: 30px; } /* MODIFICAÇÃO: Margem superior ajustada */
         .pix-table { width: 100%; border-collapse: collapse; }
         .qr-code-cell { width: 150px; padding-right: 15px; vertical-align: top; }
         .pix-details-cell { vertical-align: top; }
         .pix-code { width: 100%; height: 80px; font-size: 10px; padding: 5px; border: 1px solid #ccc; resize: none; word-break: break-all; }
     </style></head><body>
         
-        <div class='header'><h3>Elias TechMaster Reparos</h3></div>
+        <div class='header'>
+            <h3>Elias TechMaster Reparos - " . htmlspecialchars($numeroOS) . "</h3>
+        </div>
+        
         <table class='header-table'>
             <tr>
                 <td class='logo-cell'>
@@ -129,19 +150,28 @@ function generatePdf(array $data, string $numeroOS) {
         </table>
 
         <table class='info-table'><tr><td style='width: 50%;'><strong>Nº OS:</strong> " . htmlspecialchars($numeroOS) . "</td><td style='width: 50%;'><strong>Emissão:</strong> " . date('d/m/Y') . "</td></tr></table>
+        
         <div class='section-title'>Dados do Cliente</div>
         <table class='info-table'>
             <tr><td class='label'>Nome:</td><td>" . htmlspecialchars($data['cliente_nome'] ?? $data['clienteNome'] ?? 'Não informado') . "</td></tr>
             <tr><td class='label'>Telefone:</td><td>" . htmlspecialchars($data['cliente_telefone'] ?? $data['clienteTelefone'] ?? 'Não informado') . "</td></tr>
             <tr><td class='label'>E-mail:</td><td>" . htmlspecialchars($data['cliente_email'] ?? $data['clienteEmail'] ?? 'Não informado') . "</td></tr>
         </table>
+        
         <div class='section-title'>Dados do Equipamento</div>
         <table class='info-table'><tr><td class='label'>Equipamento:</td><td>" . htmlspecialchars($data['equipamento'] ?? 'Não informado') . "</td></tr></table>
-        <div class='section-title'>Problema Informado</div><p>" . nl2br(htmlspecialchars($data['problema_relatado'] ?? $data['problema'] ?? 'Não informado')) . "</p>
-        <div class='section-title'>Laudo Técnico</div><p>" . nl2br(htmlspecialchars($data['laudo_tecnico'] ?? $data['laudo'] ?? 'Não informado')) . "</p>
+        
+        <div class='section-title'>Problema Informado</div>
+        <p class='section-content'>" . nl2br(htmlspecialchars($data['problema_relatado'] ?? $data['problema'] ?? 'Não informado')) . "</p>
+        
+        <div class='section-title'>Laudo Técnico</div>
+        <p class='section-content'>" . nl2br(htmlspecialchars($data['laudo_tecnico'] ?? $data['laudo'] ?? 'Não informado')) . "</p>
+        
         <div class='section-title'>Serviços Realizados</div>
         <table class='services-table'><thead><tr><th>Descrição</th><th style='width: 50px;'>Qtd.</th><th style='width: 100px;'>Valor Unit.</th><th style='width: 100px;'>Subtotal</th></tr></thead><tbody>" . $servicosHtml . "</tbody></table>
+        
         <div class='total-line'>TOTAL: R$ " . $totalFormatado . "</div>
+        
         " . $pixHtml . "
     </body></html>";
 
@@ -195,6 +225,7 @@ try {
         $stmt_servicos->execute([$osId]);
         $data['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
+        // O prefixo "OS-" é adicionado aqui, antes de passar para a função
         $pdfContent = generatePdf($data, 'OS-' . $osId);
         
         if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
