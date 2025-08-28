@@ -143,10 +143,6 @@ try {
             }
         }
         
-        // Define o caminho do arquivo
-        $filename = "OS-" . uniqid() . "-" . $osId . ".pdf"; // Adicionado uniqid() para evitar conflitos
-        $filepath = $pdfDir . '/' . $filename;
-        
         // Busca os dados no banco
         $stmt_os = $pdo->prepare("SELECT os.*, c.nome as cliente_nome, c.telefone as cliente_telefone, c.email as cliente_email FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
         $stmt_os->execute([$osId]);
@@ -157,6 +153,21 @@ try {
             echo json_encode(['success' => false, 'error' => 'Ordem de Serviço não encontrada no banco de dados.']);
             exit;
         }
+
+
+        // Pega o nome do equipamento ou usa um texto padrão caso não exista.
+        $equipamentoNome = $data['equipamento'] ?? 'Equipamento';
+
+        // Sanitiza o nome do equipamento para criar um nome de arquivo seguro.
+        // 1. Substitui espaços e múltiplos hífens por um único hífen.
+        $safeEquipamentoNome = preg_replace('/[\s-]+/', '-', $equipamentoNome);
+        // 2. Remove todos os caracteres que não são letras, números, hífens ou pontos.
+        $safeEquipamentoNome = preg_replace('/[^A-Za-z0-9\-\.]/', '', $safeEquipamentoNome);
+
+        // Define o nome do arquivo no formato desejado: "OS-Equipamento.pdf"
+        $filename = "OS " . $osId . " - " . $safeEquipamentoNome . ".pdf";
+        $filepath = $pdfDir . '/' . $filename;
+
 
         $stmt_servicos = $pdo->prepare("SELECT os_s.*, s.nome as servico_nome FROM os_servicos os_s JOIN servicos s ON os_s.servico_id = s.id WHERE os_s.os_id = ?");
         $stmt_servicos->execute([$osId]);
@@ -169,7 +180,6 @@ try {
         if (!is_dir($pdfDir)) mkdir($pdfDir, 0775, true);
         file_put_contents($filepath, $pdfContent);
         
-        // ############### INÍCIO DA MUDANÇA ###############
         // Agenda a exclusão do arquivo em 15 segundos em segundo plano.
         // Isso funciona em ambientes baseados em Linux/Unix.
         if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') { // Verifica se não é Windows
@@ -180,7 +190,6 @@ try {
             $command = "(sleep " . $segundosParaExcluir . " && rm " . $safeFilepath . ") > /dev/null 2>&1 &";
             shell_exec($command);
         }
-        // ################ FIM DA MUDANÇA #################
         
         // Responde ao front-end com o nome do arquivo para download
         echo json_encode(['success' => true, 'fileName' => $filename]);
