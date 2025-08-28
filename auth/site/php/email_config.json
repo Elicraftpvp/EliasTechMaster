@@ -1,9 +1,0 @@
-{
-    "smtp_host": "mail.google.com",
-    "smtp_port": "465",
-    "smtp_user": "eliasgustavokersten@gmail.com",
-    "smtp_security": "ssl",
-    "smtp_auth": 1,
-    "smtp_from_name": "Elias Gustavo Kersten",
-    "smtp_from_email": "eliasgkersten@gmail.com"
-}

@@ -30,16 +30,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const config = await response.json();
 
             if (config && Object.keys(config).length > 0) {
+                // Novos campos
+                document.getElementById('email_account_type').value = config.email_account_type || 'imap';
+                document.getElementById('email_incoming_host').value = config.email_incoming_host || '';
+
+                // Campos existentes
                 document.getElementById('smtp_host').value = config.smtp_host || '';
                 document.getElementById('smtp_port').value = config.smtp_port || '';
                 document.getElementById('smtp_user').value = config.smtp_user || '';
-                document.getElementById('smtp_pass').placeholder = 'Preencha para alterar';
+                document.getElementById('smtp_pass').placeholder = 'Preenchido (digite para alterar)';
                 document.getElementById('smtp_security').value = config.smtp_security || 'tls';
-                document.getElementById('smtp_auth').checked = !!parseInt(config.smtp_auth);
+                document.getElementById('smtp_auth').checked = config.smtp_auth !== '0';
                 document.getElementById('smtp_from_name').value = config.smtp_from_name || '';
                 document.getElementById('smtp_from_email').value = config.smtp_from_email || '';
             }
-        } catch (error) {
+        } catch (error)
+        {
             console.error('Falha ao carregar configurações de e-mail:', error);
             alert('Não foi possível carregar as configurações de e-mail.');
         }
@@ -54,6 +60,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = {
             _method: 'PUT',
             tipo: 'email',
+            // Novos campos
+            email_account_type: document.getElementById('email_account_type').value,
+            email_incoming_host: document.getElementById('email_incoming_host').value,
+            // Campos existentes
             smtp_host: document.getElementById('smtp_host').value,
             smtp_port: document.getElementById('smtp_port').value,
             smtp_user: document.getElementById('smtp_user').value,
@@ -76,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             alert(result.message);
             document.getElementById('smtp_pass').value = '';
+            document.getElementById('smtp_pass').placeholder = 'Preenchido (digite para alterar)';
         } catch (error) {
             console.error('Falha ao salvar configurações de e-mail:', error);
             alert(`Ocorreu um erro: ${error.message}`);
@@ -86,10 +97,56 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const testarConexaoEmail = async () => {
-        alert('Funcionalidade de teste de conexão ainda não implementada.');
+        const btn = btnTestarEmail;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testando...';
+
+        const data = {
+            tipo: 'email',
+            acao: 'testar',
+            // Novos campos (enviados para consistência, mas não usados no teste SMTP)
+            email_account_type: document.getElementById('email_account_type').value,
+            email_incoming_host: document.getElementById('email_incoming_host').value,
+            // Campos existentes
+            smtp_host: document.getElementById('smtp_host').value,
+            smtp_port: document.getElementById('smtp_port').value,
+            smtp_user: document.getElementById('smtp_user').value,
+            smtp_pass: document.getElementById('smtp_pass').value,
+            smtp_security: document.getElementById('smtp_security').value,
+            smtp_auth: document.getElementById('smtp_auth').checked ? 1 : 0,
+            smtp_from_name: document.getElementById('smtp_from_name').value,
+            smtp_from_email: document.getElementById('smtp_from_email').value,
+        };
+
+        if (!data.smtp_pass) {
+             alert('Para testar a conexão, a senha do e-mail precisa ser preenchida no campo "Senha". Ela não será salva.');
+             btn.disabled = false;
+             btn.innerHTML = '<i class="fas fa-plug"></i> Testar Conexão (SMTP)';
+             return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/configuracoes_api.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || 'Erro desconhecido no teste de conexão.');
+            }
+            alert(result.message);
+        } catch (error) {
+            console.error('Falha ao testar conexão de e-mail:', error);
+            alert(`Falha no teste: ${error.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plug"></i> Testar Conexão (SMTP)';
+        }
     };
 
     const carregarFilaEmail = async () => {
+        // (código existente sem alterações)
         tableBodyFilaEmail.innerHTML = `<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm"></div> Carregando fila...</td></tr>`;
         try {
             const response = await fetch(`${API_BASE_URL}/configuracoes_api.php?tipo=fila_email`);
@@ -131,9 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ===================================================================
-    // FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (CÓDIGO EXISTENTE ADAPTADO)
+    // FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (CÓDIGO EXISTENTE SEM ALTERAÇÕES)
     // ===================================================================
-
     const carregarUsuarios = async () => {
         tableBodyUsuarios.innerHTML = `<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm"></div> Carregando...</td></tr>`;
         try {
@@ -261,12 +317,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // EVENT LISTENERS
     // ===================================================================
 
-    // Listeners da Seção de E-mail
     formEmailConfig.addEventListener('submit', salvarConfigEmail);
     btnTestarEmail.addEventListener('click', testarConexaoEmail);
     btnRecarregarFila.addEventListener('click', carregarFilaEmail);
 
-    // Listeners da Seção de Usuários
     document.getElementById('salvar-usuario-btn').addEventListener('click', salvarUsuario);
     tableBodyUsuarios.addEventListener('click', (e) => {
         const target = e.target.closest('button');
@@ -285,10 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // INICIALIZAÇÃO
     // ===================================================================
     
-    // Carrega os dados da primeira aba visível ao carregar a página
     carregarConfigEmail();
 
-    // Opcional: Recarregar dados apenas quando o usuário clicar na aba
     const tabs = document.querySelectorAll('#config-tabs button[data-bs-toggle="tab"]');
     tabs.forEach(tab => {
         tab.addEventListener('shown.bs.tab', event => {

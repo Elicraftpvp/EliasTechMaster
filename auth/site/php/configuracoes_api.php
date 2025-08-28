@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
-require_once 'conexao.php'; // Inclui o script de conexão com o banco
+require_once 'conexao.php';
+require_once 'email.php'; // <-- ADICIONADO: Inclui nosso novo helper
 
 // Simula um roteador de API simples
 $method = $_SERVER['REQUEST_METHOD'];
@@ -11,12 +12,14 @@ if ($method == 'POST' && isset($input['_method'])) {
     $method = strtoupper($input['_method']);
 }
 
-// Determina qual recurso está sendo solicitado (usuários, email, etc.)
+// Determina qual recurso está sendo solicitado
 $tipo = $_GET['tipo'] ?? ($input['tipo'] ?? null);
+$acao = $input['acao'] ?? null; // <-- ADICIONADO: Para ações específicas como 'testar'
 
 switch ($tipo) {
     case 'email':
-        handle_email($pdo, $method, $input);
+        // <-- MODIFICADO: Passa a ação para o handler
+        handle_email($pdo, $method, $input, $acao);
         break;
     case 'fila_email':
         handle_fila_email($pdo, $method, $input);
@@ -37,29 +40,48 @@ switch ($tipo) {
 /**
  * Manipula requisições relacionadas às configurações de e-mail.
  */
-function handle_email($pdo, $method, $input) {
-    // Em um sistema real, isso estaria em uma tabela `configuracoes` no banco.
-    $configFile = 'email_config.json';
+function handle_email($pdo, $method, $input, $acao) {
+    $configFile = __DIR__ . '/../mail/email_config.json';
+
+    // <-- MODIFICADO: Adiciona uma nova rota de ação para o teste
+    if ($method == 'POST' && $acao == 'testar') {
+        // Para o teste, usamos o e-mail do próprio usuário como destinatário
+        $destinatarioEmail = $input['smtp_user'];
+        $destinatarioNome = 'Usuário de Teste';
+        $assunto = 'Teste de Conexão - Sistema OS';
+        $corpoHtml = '<h1>Conexão SMTP bem-sucedida!</h1><p>Se você recebeu este e-mail, suas configurações estão corretas.</p>';
+
+        // Chama a função helper para enviar o e-mail
+        $resultado = enviarEmail($input, $destinatarioEmail, $destinatarioNome, $assunto, $corpoHtml);
+
+        if ($resultado['success']) {
+            echo json_encode(['success' => true, 'message' => "Conexão bem-sucedida! E-mail de teste enviado para {$destinatarioEmail}."]);
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $resultado['message']]);
+        }
+        return;
+    }
 
     if ($method == 'GET') {
         if (file_exists($configFile)) {
             $config = json_decode(file_get_contents($configFile), true);
             echo json_encode($config);
         } else {
-            echo json_encode([]); // Retorna objeto vazio se não houver config
+            echo json_encode([]);
         }
     } elseif ($method == 'PUT') {
-        // A senha não é salva no arquivo por segurança.
-        // Em um sistema real, a senha seria criptografada e salva no banco.
-        unset($input['smtp_pass']); 
-        unset($input['_method']);
-        unset($input['tipo']);
+        // Salva as configurações sem a senha
+        $configParaSalvar = $input;
+        unset($configParaSalvar['smtp_pass']);
+        unset($configParaSalvar['_method']);
+        unset($configParaSalvar['tipo']);
 
-        if (file_put_contents($configFile, json_encode($input, JSON_PRETTY_PRINT))) {
+        if (file_put_contents($configFile, json_encode($configParaSalvar, JSON_PRETTY_PRINT))) {
             echo json_encode(['success' => true, 'message' => 'Configurações de e-mail salvas com sucesso!']);
         } else {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Não foi possível salvar o arquivo de configuração. Verifique as permissões.']);
+            echo json_encode(['success' => false, 'message' => 'Não foi possível salvar o arquivo de configuração.']);
         }
     } else {
         http_response_code(405);
@@ -71,8 +93,8 @@ function handle_email($pdo, $method, $input) {
  * Manipula requisições relacionadas à fila de e-mails.
  */
 function handle_fila_email($pdo, $method, $input) {
+    // (código existente sem alterações)
     if ($method == 'GET') {
-        // Simulação de dados da fila de e-mails. No futuro, virá do banco.
         $fila = [
             ['id' => 1, 'destinatario' => 'cliente1@example.com', 'assunto' => 'Sua OS #123 foi atualizada', 'status' => 'pendente', 'ultima_tentativa' => '2023-10-27T10:00:00Z'],
             ['id' => 2, 'destinatario' => 'cliente2@example.com', 'assunto' => 'Orçamento do serviço', 'status' => 'falhou', 'ultima_tentativa' => '2023-10-27T09:30:00Z', 'erro' => 'SMTP connection failed'],
@@ -86,9 +108,10 @@ function handle_fila_email($pdo, $method, $input) {
 }
 
 /**
- * Manipula requisições relacionadas aos usuários (código original adaptado).
+ * Manipula requisições relacionadas aos usuários.
  */
 function handle_usuarios($pdo, $method, $input, $get) {
+    // (código existente sem alterações)
     try {
         switch ($method) {
             case 'GET':
@@ -103,7 +126,6 @@ function handle_usuarios($pdo, $method, $input, $get) {
                     echo json_encode($usuarios);
                 }
                 break;
-
             case 'POST':
                 $sql = "INSERT INTO usuarios (nome, email, senha, telefone, endereco) VALUES (?, ?, ?, ?, ?)";
                 $stmt = $pdo->prepare($sql);
@@ -111,7 +133,6 @@ function handle_usuarios($pdo, $method, $input, $get) {
                 $stmt->execute([$input['nome'], $input['email'], $senhaHash, $input['telefone'], $input['endereco']]);
                 echo json_encode(['success' => true, 'message' => 'Usuário adicionado com sucesso!']);
                 break;
-
             case 'PUT':
                 $sql = "UPDATE usuarios SET nome = ?, email = ?, telefone = ?, endereco = ?";
                 $params = [$input['nome'], $input['email'], $input['telefone'], $input['endereco']];
@@ -121,18 +142,15 @@ function handle_usuarios($pdo, $method, $input, $get) {
                 }
                 $sql .= " WHERE id = ?";
                 $params[] = $input['id'];
-                
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
                 echo json_encode(['success' => true, 'message' => 'Usuário atualizado com sucesso!']);
                 break;
-
             case 'DELETE':
                 $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
                 $stmt->execute([$input['id']]);
                 echo json_encode(['success' => true, 'message' => 'Usuário excluído com sucesso!']);
                 break;
-
             default:
                 http_response_code(405);
                 echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
@@ -140,7 +158,6 @@ function handle_usuarios($pdo, $method, $input, $get) {
         }
     } catch (PDOException $e) {
         http_response_code(500);
-        // Em produção, logar o erro em vez de exibi-lo
         echo json_encode(['success' => false, 'message' => 'Erro no servidor: ' . $e->getMessage()]);
     }
 }

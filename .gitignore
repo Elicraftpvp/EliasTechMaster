@@ -3,3 +3,4 @@ auth/site/php/pdfs/
 pdfs/
 phpqrcode/
 !*.php
+email_config.json
