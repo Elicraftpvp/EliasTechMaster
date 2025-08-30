@@ -1,10 +1,14 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const tableBody = document.getElementById('os-table-body');
+    
+    // --- Referências aos Modais ---
     const editModalElement = document.getElementById('editOsModal');
-    if (!editModalElement) return;
+    const statusModalElement = document.getElementById('statusChangeModal');
+    if (!editModalElement || !statusModalElement) return;
     const editModal = new bootstrap.Modal(editModalElement);
+    const statusModal = new bootstrap.Modal(statusModalElement);
 
-    // --- Referências aos Elementos do Modal ---
+    // --- Referências aos Elementos do Modal de Edição ---
     const editOsIdInput = document.getElementById('edit_os_id');
     const osIdModalSpan = document.getElementById('os-id-modal');
     const editClienteNomeInput = document.getElementById('edit_cliente_nome');
@@ -20,9 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnAdicionarServico = document.getElementById('edit-add-servico-btn');
     const btnSalvarAlteracoes = document.getElementById('salvar-edit-os-btn');
 
+    // --- Referências aos Elementos do Modal de Status ---
+    const statusModalOsIdText = document.getElementById('status-modal-os-id');
+    const statusOsIdInput = document.getElementById('status_os_id_input');
+    const statusSelectModal = document.getElementById('status_select_modal');
+    const btnSalvarStatus = document.getElementById('salvar-status-btn');
+
     let listaDeServicos = [];
 
-    // --- LÓGICA DE CÁLCULO DE TOTAL (MODAL) ---
+    // --- LÓGICA DE CÁLCULO DE TOTAL (MODAL DE EDIÇÃO) ---
     const updateEditTotals = () => {
         let subtotalServicos = 0;
         let totalDescontoFixo = 0;
@@ -73,7 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     
-    // --- MANIPULAÇÃO DE SERVIÇOS (MODAL) ---
+    // --- MANIPULAÇÃO DE SERVIÇOS (MODAL DE EDIÇÃO) ---
     btnAdicionarServico.addEventListener('click', () => {
         const servicoId = editServicosSelect.value;
         if (!servicoId || servicoId.startsWith('Selecione')) return;
@@ -150,18 +160,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const dataSaida = os.data_saida ? new Date(os.data_saida).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '--';
                 const valorTotal = parseFloat(os.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-                const statusDropdownHtml = `
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm ${currentStatusInfo.class} dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">${os.status}</button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aberta">Aberta</a></li>
-                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Em Andamento">Em Andamento</a></li>
-                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Aguardando Peças">Aguardando Peças</a></li>
-                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Concluída">Concluída</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item status-change-option" href="#" data-new-status="Cancelada">Cancelada</a></li>
-                        </ul>
-                    </div>`;
+                // **MUDANÇA AQUI**: Substituído o dropdown por um botão simples que abre o modal
+                const statusButtonHtml = `
+                    <button type="button" 
+                            class="btn btn-sm ${currentStatusInfo.class} btn-change-status" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#statusChangeModal" 
+                            data-os-id="${os.id}" 
+                            data-current-status="${os.status}">
+                        ${os.status}
+                    </button>`;
 
                 const row = `
                     <tr data-os-id="${os.id}">
@@ -170,7 +178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <td>${os.equipamento}</td>
                         <td>${dataEntrada}</td>
                         <td>${dataSaida}</td>
-                        <td>${statusDropdownHtml}</td>
+                        <td>${statusButtonHtml}</td>
                         <td>${valorTotal}</td>
                         <td class="text-nowrap">
                             <button class="btn btn-sm btn-info btn-visualizar" title="Visualizar/Baixar PDF"><i class="fas fa-file-pdf"></i></button>
@@ -190,28 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     tableBody.addEventListener('click', async (e) => {
         const target = e.target;
         
-        // Mudança rápida de status
-        if (target.classList.contains('status-change-option')) {
-            e.preventDefault();
-            const row = target.closest('tr');
-            const osId = row.dataset.osId;
-            const newStatus = target.dataset.newStatus;
-            
-            const quickUpdateData = { status: newStatus, quick_update: true };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(quickUpdateData)
-                });
-                const result = await response.json();
-                if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
-                await carregarOrdens();
-            } catch (error) {
-                alert('Erro ao atualizar status da OS: ' + error.message);
-            }
-        }
+        // **REMOVIDO**: O listener antigo para 'status-change-option' foi removido.
 
         const button = target.closest('button');
         if (!button) return;
@@ -293,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Deletar OS
         if (button.classList.contains('btn-delete')) {
-            if (confirm(`Deseja realmente excluir a Ordem de Serviço Nº ${osId}?`)) {
+            if (confirm(`Deseja realmente excluir a Ordem de Serviço Nº ${String(osId).padStart(4, '0')}?`)) {
                  try {
                     const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, { method: 'DELETE' });
                     const result = await response.json();
@@ -306,7 +293,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- SALVAR EDIÇÃO ---
+    // --- NOVO: LÓGICA PARA O MODAL DE MUDANÇA DE STATUS ---
+    statusModalElement.addEventListener('show.bs.modal', function (event) {
+        // Pega o botão que acionou o modal
+        const button = event.relatedTarget;
+        
+        // Extrai os dados do botão
+        const osId = button.getAttribute('data-os-id');
+        const currentStatus = button.getAttribute('data-current-status');
+        
+        // Popula o modal com os dados
+        statusModalOsIdText.textContent = String(osId).padStart(4, '0');
+        statusOsIdInput.value = osId;
+        statusSelectModal.value = currentStatus;
+    });
+
+    btnSalvarStatus.addEventListener('click', async () => {
+        const osId = statusOsIdInput.value;
+        const newStatus = statusSelectModal.value;
+        
+        const quickUpdateData = { status: newStatus, quick_update: true };
+
+        btnSalvarStatus.disabled = true;
+        btnSalvarStatus.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Salvando...`;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(quickUpdateData)
+            });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
+            
+            statusModal.hide();
+            await carregarOrdens();
+        } catch (error) {
+            alert('Erro ao atualizar status da OS: ' + error.message);
+        } finally {
+            btnSalvarStatus.disabled = false;
+            btnSalvarStatus.innerHTML = `Salvar`;
+        }
+    });
+
+    // --- SALVAR EDIÇÃO (MODAL PRINCIPAL) ---
     btnSalvarAlteracoes.addEventListener('click', async () => {
         const osId = editOsIdInput.value;
         const osData = {
@@ -350,6 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- INICIALIZAÇÃO ---
     carregarOrdens();
     carregarServicosParaModal();
 });
