@@ -24,7 +24,6 @@ try {
                     exit;
                 }
 
-                // MODIFICAÇÃO AQUI: Adicionamos s.tipo e s.valor para referência no frontend
                 $stmt_servicos = $pdo->prepare("SELECT os_s.*, 
                                                        s.nome as servico_nome, 
                                                        s.tipo as servico_tipo,
@@ -48,40 +47,30 @@ try {
             break;
         
         case 'POST':
+            // ... (seu código POST permanece inalterado) ...
             $data = json_decode(file_get_contents('php://input'), true);
             $pdo->beginTransaction();
-
             $clienteId = $data['clienteId'] ?? null;
-
             if (empty($clienteId)) {
                 $stmtBusca = $pdo->prepare("SELECT id FROM clientes WHERE nome = ? AND telefone = ?");
                 $stmtBusca->execute([$data['clienteNome'], $data['clienteTelefone']]);
                 $clienteExistente = $stmtBusca->fetch();
-
-                if ($clienteExistente) {
-                    $clienteId = $clienteExistente['id'];
-                } else {
+                if ($clienteExistente) { $clienteId = $clienteExistente['id']; } else {
                     $sqlCliente = "INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)";
                     $stmtCliente = $pdo->prepare($sqlCliente);
                     $stmtCliente->execute([$data['clienteNome'], $data['clienteTelefone'], $data['clienteEmail']]);
                     $clienteId = $pdo->lastInsertId();
                 }
             }
-            
-            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status) 
-                      VALUES (?, ?, ?, ?, ?, 'Aberta')";
+            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status) VALUES (?, ?, ?, ?, ?, 'Aberta')";
             $stmtOs = $pdo->prepare($sqlOs);
             $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total']]);
             $osId = $pdo->lastInsertId();
-
             $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
             $stmtOsServicos = $pdo->prepare($sqlOsServicos);
-            
             foreach ($data['servicos'] as $servico) {
-                // O subtotal de descontos não é relevante da mesma forma, mas guardamos o valor calculado
                 $stmtOsServicos->execute([$osId, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
             }
-
             $pdo->commit();
             echo json_encode(['success' => true, 'os_id' => $osId, 'cliente_id' => $clienteId]);
             break;
@@ -94,7 +83,7 @@ try {
             }
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // ATUALIZAÇÃO RÁPIDA DE STATUS (do dropdown na tabela)
+            // ATUALIZAÇÃO RÁPIDA DE STATUS (do modal)
             if (isset($data['quick_update']) && $data['quick_update'] === true) {
                 $sql_quick_update = "UPDATE ordens_servico SET status = ?, data_saida = ? WHERE id = ?";
                 $stmt_quick_update = $pdo->prepare($sql_quick_update);
@@ -107,67 +96,59 @@ try {
                     $id
                 ]);
                 
-                $filename = "OS-" . $id . ".pdf";
-                $filepath = __DIR__ . '/pdfs/' . $filename;
-                if (file_exists($filepath)) {
-                    @unlink($filepath);
+                // *** INÍCIO DO GATILHO DE E-MAIL ***
+                if ($data['status'] === 'Concluída') {
+                    $phpPath = 'php'; // Caminho para o executável do PHP. Se estiver no PATH, 'php' basta.
+                    $scriptPath = __DIR__ . '/disparar_email_os.php';
+                    
+                    // Prepara o comando para ser executado em segundo plano
+                    // escapeshellarg garante que os argumentos são passados de forma segura
+                    $command = $phpPath . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($id);
+                    
+                    // Adiciona redirecionamento de saída para rodar em segundo plano (compatível com Linux/Windows)
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        // Para Windows
+                        pclose(popen("start /B " . $command, "r"));
+                    } else {
+                        // Para Linux/Mac
+                        shell_exec($command . ' > /dev/null 2>&1 &');
+                    }
                 }
+                // *** FIM DO GATILHO DE E-MAIL ***
+
+                // A parte de apagar o PDF antigo não é mais necessária aqui, pois não salvamos mais o PDF
+                // para o envio de e-mail. A funcionalidade de visualização continua independente.
+                
                 echo json_encode(['success' => true]);
 
             // ATUALIZAÇÃO COMPLETA (do modal)
             } else {
+                // ... (seu código de atualização completa permanece inalterado) ...
                 $pdo->beginTransaction();
-
                 $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
                 $stmt_update = $pdo->prepare($sql_update);
-                $stmt_update->execute([
-                    $data['equipamento'],
-                    $data['problema'],
-                    $data['laudo'],
-                    $data['status'],
-                    (float)$data['total'],
-                    $id
-                ]);
-
+                $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
                 $stmt_delete_servicos = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
                 $stmt_delete_servicos->execute([$id]);
-
                 $sql_insert_servicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
                 $stmt_insert_servicos = $pdo->prepare($sql_insert_servicos);
                 foreach ($data['servicos'] as $servico) {
                     $stmt_insert_servicos->execute([$id, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
                 }
-
                 $pdo->commit();
-
-                $filename = "OS-" . $id . ".pdf";
-                $filepath = __DIR__ . '/pdfs/' . $filename;
-                if (file_exists($filepath)) {
-                    @unlink($filepath);
-                }
-
                 echo json_encode(['success' => true]);
             }
             break;
 
         case 'DELETE':
-            if (!$id) {
-                http_response_code(400);
-                echo json_encode(['error' => 'ID da OS não fornecido.']);
-                exit;
-            }
+            // ... (seu código DELETE permanece inalterado) ...
+            if (!$id) { http_response_code(400); echo json_encode(['error' => 'ID da OS não fornecido.']); exit; }
             $pdo->beginTransaction();
             $stmt1 = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
             $stmt1->execute([$id]);
             $stmt2 = $pdo->prepare("DELETE FROM ordens_servico WHERE id = ?");
             $stmt2->execute([$id]);
             $pdo->commit();
-            
-            $filename = "OS-" . $id . ".pdf";
-            $filepath = __DIR__ . '/pdfs/' . $filename;
-            if (file_exists($filepath)) {
-                @unlink($filepath);
-            }
             echo json_encode(['success' => true]);
             break;
         

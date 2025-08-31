@@ -1,0 +1,14 @@
+{
+    "comentario": "arquivo puxa as config do email, se for clonar o repo, da gitignore nisso daqui, e remove o nome na frente do arquivo",
+    "email_account_type": "",
+    "email_incoming_host": "",
+    "smtp_host": "",
+    "smtp_port": "",
+    "smtp_user": "",
+    "smtp_security": "",
+    "smtp_auth": 1,
+    "email_subject_template": "",
+    "email_body_template": "",
+    "smtp_password:": ""
+}
+

@@ -4,3 +4,4 @@ pdfs/
 phpqrcode/
 !*.php
 email_config.json
+email_trigger.log

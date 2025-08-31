@@ -315,7 +315,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const quickUpdateData = { status: newStatus, quick_update: true };
 
         btnSalvarStatus.disabled = true;
-        btnSalvarStatus.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Salvando...`;
+        
+        // MODIFICADO: Mensagem personalizada se a OS for concluída
+        if (newStatus === 'Concluída') {
+            btnSalvarStatus.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Enviando E-mail...`;
+        } else {
+            btnSalvarStatus.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Salvando...`;
+        }
 
         try {
             const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, {
