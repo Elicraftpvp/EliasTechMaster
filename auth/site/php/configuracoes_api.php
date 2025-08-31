@@ -46,6 +46,76 @@ try {
 // Limpa o buffer de saída no final da execução normal
 ob_end_flush();
 
+/**
+ * Manipula requisições relacionadas aos usuários (CRUD).
+ */
+function handle_usuarios($pdo, $method, $input, $get) {
+    try {
+        switch ($method) {
+            case 'GET':
+                // Se um ID for passado na URL (ex: ?tipo=usuarios&id=5), busca um usuário específico
+                if (isset($get['id'])) {
+                    $stmt = $pdo->prepare("SELECT id, nome, email, telefone, endereco FROM usuarios WHERE id = ?");
+                    $stmt->execute([$get['id']]);
+                    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+                    echo json_encode($usuario ?: null);
+                } else {
+                    // Caso contrário, lista todos os usuários
+                    $stmt = $pdo->query("SELECT id, nome, email, telefone, data_cadastro FROM usuarios ORDER BY nome");
+                    $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    echo json_encode($usuarios);
+                }
+                break;
+            case 'POST':
+                // Adiciona um novo usuário
+                $sql = "INSERT INTO usuarios (nome, email, senha, telefone, endereco) VALUES (?, ?, ?, ?, ?)";
+                $stmt = $pdo->prepare($sql);
+                $senhaHash = password_hash($input['senha'], PASSWORD_DEFAULT);
+                $stmt->execute([$input['nome'], $input['email'], $senhaHash, $input['telefone'], $input['endereco']]);
+                echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'message' => 'Usuário adicionado com sucesso!']);
+                break;
+            case 'PUT':
+                // Atualiza um usuário existente
+                $sql = "UPDATE usuarios SET nome = ?, email = ?, telefone = ?, endereco = ?";
+                $params = [$input['nome'], $input['email'], $input['telefone'], $input['endereco']];
+                
+                // Atualiza a senha apenas se uma nova for fornecida
+                if (!empty($input['senha'])) {
+                    $sql .= ", senha = ?";
+                    $params[] = password_hash($input['senha'], PASSWORD_DEFAULT);
+                }
+                
+                $sql .= " WHERE id = ?";
+                $params[] = $input['id'];
+                
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+                echo json_encode(['success' => true, 'message' => 'Usuário atualizado com sucesso!']);
+                break;
+            case 'DELETE':
+                // Exclui um usuário
+                $id = $input['id'] ?? $get['id'] ?? null;
+                if (!$id) {
+                     http_response_code(400);
+                     echo json_encode(['success' => false, 'message' => 'ID do usuário não fornecido para exclusão.']);
+                     return;
+                }
+                $stmt = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
+                $stmt->execute([$id]);
+                echo json_encode(['success' => true, 'message' => 'Usuário excluído com sucesso!']);
+                break;
+            default:
+                http_response_code(405);
+                echo json_encode(['success' => false, 'message' => 'Método não permitido para o recurso de usuários.']);
+                break;
+        }
+    } catch (PDOException $e) {
+        http_response_code(500);
+        // Evite expor detalhes do erro em produção, mas útil para desenvolvimento
+        echo json_encode(['success' => false, 'message' => 'Erro no banco de dados: ' . $e->getMessage()]);
+    } // <-- CORRIGIDO: Fechamento do bloco try
+}
+
 
 // As funções abaixo permanecem as mesmas
 function handle_email_completo($pdo, $method, $input) {
