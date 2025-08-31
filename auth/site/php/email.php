@@ -7,7 +7,7 @@ use PHPMailer\PHPMailer\Exception;
 // Carrega o autoloader do Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// (A função carregarConfigSmtp e enviarEmailTesteSimples permanecem as mesmas)
+// (A função carregarConfigSmtp permanece a mesma)
 function carregarConfigSmtp() {
     $configFile = __DIR__ . '/../mail/email_config.json';
     if (!file_exists($configFile)) {
@@ -26,21 +26,22 @@ function carregarConfigSmtp() {
     return $config;
 }
 
+/**
+ * Envia um e-mail de teste simples com dados de exemplo.
+ */
 function enviarEmailTesteSimples(string $destinatarioEmail, string $assuntoTemplate, string $corpoTemplate) {
     $config = carregarConfigSmtp();
     if (is_string($config)) {
         return ['success' => false, 'message' => $config];
     }
-    $assunto = str_replace(
-        ['(N_OS_tag)', '(Nome_cliente_tag)', '(Status_OS_tag)'],
-        ['999', 'Cliente de Teste', 'Em Andamento'],
-        $assuntoTemplate
-    );
-    $corpoHtml = nl2br(htmlspecialchars(str_replace(
-        ['(N_OS_tag)', '(Nome_cliente_tag)', '(Status_OS_tag)'],
-        ['999', 'Cliente de Teste', 'Em Andamento'],
-        $corpoTemplate
-    )));
+
+    // MODIFICADO: Adicionada a nova tag à lista de substituição
+    $tagsParaBuscar = ['(N_OS_tag)', '(Nome_cliente_tag)', '(Status_OS_tag)', '(equipamento_OS_tag)'];
+    $valoresParaSubstituir = ['999', 'Cliente de Teste', 'Em Andamento', 'Desktop de Exemplo (i5/8GB RAM)'];
+
+    $assunto = str_replace($tagsParaBuscar, $valoresParaSubstituir, $assuntoTemplate);
+    $corpoHtml = nl2br(htmlspecialchars(str_replace($tagsParaBuscar, $valoresParaSubstituir, $corpoTemplate)));
+    
     $remetenteNome = $config['smtp_from_name'] ?? 'Equipe de Suporte';
     return enviarEmailPHPMailer($config, $destinatarioEmail, 'Usuário de Teste', $assunto, $corpoHtml, $remetenteNome);
 }
@@ -48,11 +49,6 @@ function enviarEmailTesteSimples(string $destinatarioEmail, string $assuntoTempl
 
 /**
  * Envia um e-mail real baseado nos dados de uma Ordem de Serviço.
- * VERSÃO REVISADA E MAIS ROBUSTA
- *
- * @param PDO $pdo A instância da conexão com o banco de dados.
- * @param int $os_id O ID da Ordem de Serviço.
- * @return array Retorna ['success' => true] ou ['success' => false, 'message' => 'erro'].
  */
 function enviarEmailOS(PDO $pdo, int $os_id) {
     $config = carregarConfigSmtp();
@@ -62,9 +58,8 @@ function enviarEmailOS(PDO $pdo, int $os_id) {
 
     $dadosOS = null;
     try {
-        // 1. Buscar dados da OS e do Cliente (sem a data_abertura)
-        // MODIFICADO: Query simplificada para remover a data
-        $stmt = $pdo->prepare("SELECT os.id, os.status, c.nome as cliente_nome, c.email as cliente_email 
+        // MODIFICADO: Adicionado 'os.equipamento' à consulta SQL
+        $stmt = $pdo->prepare("SELECT os.id, os.status, os.equipamento, c.nome as cliente_nome, c.email as cliente_email 
                                FROM ordens_servico os 
                                JOIN clientes c ON os.cliente_id = c.id 
                                WHERE os.id = ?");
@@ -72,7 +67,6 @@ function enviarEmailOS(PDO $pdo, int $os_id) {
         $dadosOS = $stmt->fetch(PDO::FETCH_ASSOC);
 
     } catch (PDOException $e) {
-        // NOVO: Captura erros específicos do banco de dados
         return ['success' => false, 'message' => 'Erro ao consultar o banco de dados: ' . $e->getMessage()];
     }
 
@@ -86,11 +80,12 @@ function enviarEmailOS(PDO $pdo, int $os_id) {
     $assuntoTemplate = $config['email_subject_template'] ?? 'OS: (N_OS_tag)';
     $corpoTemplate = $config['email_body_template'] ?? 'Status da sua OS: (Status_OS_tag)';
 
-    // MODIFICADO: Array de tags simplificado, sem a data
+    // MODIFICADO: Adicionada a nova tag ao array de substituição
     $tags = [
-        '(N_OS_tag)'          => $dadosOS['id'],
-        '(Nome_cliente_tag)'  => $dadosOS['cliente_nome'],
-        '(Status_OS_tag)'     => $dadosOS['status'],
+        '(N_OS_tag)'           => $dadosOS['id'],
+        '(Nome_cliente_tag)'   => $dadosOS['cliente_nome'],
+        '(Status_OS_tag)'      => $dadosOS['status'],
+        '(equipamento_OS_tag)' => $dadosOS['equipamento'], // ADICIONADO
     ];
     $assunto = str_replace(array_keys($tags), array_values($tags), $assuntoTemplate);
     $corpoHtml = nl2br(htmlspecialchars(str_replace(array_keys($tags), array_values($tags), $corpoTemplate)));
@@ -109,7 +104,7 @@ function enviarEmailOS(PDO $pdo, int $os_id) {
 
 /**
  * Função central que efetivamente envia o e-mail usando PHPMailer.
- * (Esta função permanece a mesma)
+ * (Esta função não precisa de alterações)
  */
 function enviarEmailPHPMailer(array $config, string $destinatarioEmail, string $destinatarioNome, string $assunto, string $corpoHtml, string $remetenteNome) {
     $mail = new PHPMailer(true);
