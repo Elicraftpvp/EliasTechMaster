@@ -1,42 +1,58 @@
 <?php
-header('Content-Type: application/json');
-require_once 'conexao.php'; // Essencial para buscar dados da OS
-require_once 'email.php';   // Onde a lógica de envio de email reside
+// Inicia o buffer de saída para capturar qualquer erro antes que seja impresso
+ob_start();
 
-// Importa as classes do PHPMailer para usar na função de teste de conexão
+header('Content-Type: application/json');
+require_once 'conexao.php';
+require_once 'email.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Roteador de API
-$method = $_SERVER['REQUEST_METHOD'];
-$input = json_decode(file_get_contents('php://input'), true);
+// Bloco try-catch principal para garantir que sempre retornemos JSON
+try {
+    $method = $_SERVER['REQUEST_METHOD'];
+    $input = json_decode(file_get_contents('php://input'), true);
 
-if ($method == 'POST' && isset($input['_method'])) {
-    $method = strtoupper($input['_method']);
+    if ($method == 'POST' && isset($input['_method'])) {
+        $method = strtoupper($input['_method']);
+    }
+
+    $tipo = $_GET['tipo'] ?? ($input['tipo'] ?? null);
+
+    switch ($tipo) {
+        case 'email_completo':
+            handle_email_completo($pdo, $method, $input);
+            break;
+        default:
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Tipo de requisição inválido.']);
+            break;
+    }
+
+} catch (Throwable $e) {
+    // Se qualquer erro inesperado (Throwable) acontecer, ele será capturado aqui
+    ob_clean(); // Limpa qualquer saída de erro que já tenha sido gerada
+    http_response_code(500); // Erro interno do servidor
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ocorreu um erro interno no servidor.',
+        'error' => $e->getMessage(), // Envia a mensagem de erro real para debug
+        'file' => $e->getFile(),
+        'line' => $e->getLine()
+    ]);
 }
 
-$tipo = $_GET['tipo'] ?? ($input['tipo'] ?? null);
+// Limpa o buffer de saída no final da execução normal
+ob_end_flush();
 
-// O roteamento principal agora verifica o 'tipo'
-switch ($tipo) {
-    case 'email_completo':
-        handle_email_completo($pdo, $method, $input);
-        break;
-    // Outros cases como 'fila_email', 'usuarios' podem continuar aqui...
-    default:
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Tipo de requisição inválido.']);
-        break;
-}
 
-/**
- * Manipula todas as requisições para a rota 'email_completo'.
- */
+// As funções abaixo permanecem as mesmas
 function handle_email_completo($pdo, $method, $input) {
+    // ... (todo o conteúdo da função handle_email_completo, testar_conexao_smtp, etc., permanece o mesmo da versão anterior)
     $configFile = __DIR__ . '/../mail/email_config.json';
     $acao = $input['acao'] ?? null;
 
-    // Roteamento de ações específicas via POST
     if ($method == 'POST') {
         switch ($acao) {
             case 'testar_smtp':
@@ -51,7 +67,6 @@ function handle_email_completo($pdo, $method, $input) {
         }
     }
 
-    // GET para carregar configurações
     if ($method == 'GET') {
         if (file_exists($configFile)) {
             $config = json_decode(file_get_contents($configFile), true) ?: [];
@@ -62,14 +77,12 @@ function handle_email_completo($pdo, $method, $input) {
             echo json_encode([]);
         }
     } 
-    // PUT (via POST com _method) para salvar
     elseif ($method == 'PUT') {
         $configExistente = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
         if (!is_array($configExistente)) $configExistente = [];
 
         $configParaSalvar = $input;
 
-        // Mantém a senha existente se o campo vier vazio
         if (empty($input['smtp_pass']) && isset($configExistente['smtp_password:'])) {
             $configParaSalvar['smtp_password:'] = $configExistente['smtp_password:'];
         } else {
@@ -90,10 +103,8 @@ function handle_email_completo($pdo, $method, $input) {
     }
 }
 
-/**
- * Testa a conexão SMTP.
- */
 function testar_conexao_smtp($input, $configFile) {
+    // ... (código da função inalterado)
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
@@ -128,17 +139,14 @@ function testar_conexao_smtp($input, $configFile) {
     }
 }
 
-/**
- * Envia um e-mail de teste simples com dados de exemplo.
- */
 function enviar_email_teste_simples($input) {
+    // ... (código da função inalterado)
     if (empty($input['destinatario']) || !filter_var($input['destinatario'], FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Destinatário de e-mail inválido.']);
         return;
     }
     
-    // Chama a função de envio do email.php, passando os dados necessários
     $resultado = enviarEmailTesteSimples(
         $input['destinatario'],
         $input['assunto'],
@@ -153,10 +161,8 @@ function enviar_email_teste_simples($input) {
     }
 }
 
-/**
- * Envia um e-mail de teste real baseado em uma OS.
- */
 function enviar_email_teste_real($pdo, $input) {
+    // ... (código da função inalterado)
     $os_id = $input['os_id'] ?? null;
     if (empty($os_id)) {
         http_response_code(400);
@@ -164,7 +170,6 @@ function enviar_email_teste_real($pdo, $input) {
         return;
     }
 
-    // Chama a função de envio do email.php, passando a conexão PDO e o ID da OS
     $resultado = enviarEmailOS($pdo, $os_id);
 
     if ($resultado['success']) {
