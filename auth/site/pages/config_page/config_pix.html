@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração PIX</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../../style/css.css">
+</head>
+<body class="iframe-page">
+
+    <div class="card-header-icon d-flex align-items-center mb-4">
+        <h4><i class="fas fa-qrcode card-title-icon"></i> Configurações de Pagamento PIX</h4>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <p class="text-muted mb-4">Esses dados serão utilizados para gerar o QR Code e o código "Copia e Cola" automaticamente no PDF da Ordem de Serviço.</p>
+            
+            <form id="pix-form">
+                <div class="mb-3">
+                    <label for="pix_chave" class="form-label">Chave PIX (E-mail, CPF, CNPJ, Telefone ou Chave Aleatória)</label>
+                    <input type="text" class="form-control" id="pix_chave" name="pix_chave" placeholder="Ex: +5548999999999 ou seu@email.com">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="pix_nome" class="form-label">Nome do Beneficiário</label>
+                        <input type="text" class="form-control" id="pix_nome" name="pix_nome" placeholder="Seu Nome Completo">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="pix_cidade" class="form-label">Cidade</label>
+                        <input type="text" class="form-control" id="pix_cidade" name="pix_cidade" placeholder="Sua Cidade">
+                    </div>
+                </div>
+
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="fas fa-info-circle me-3"></i>
+                    <div>
+                        Certifique-se de que os dados estão corretos para evitar erros no pagamento do cliente.
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary" id="btn-salvar-pix">
+                        <i class="fas fa-save me-2"></i>Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../script/common.js"></script>
+    <script src="../../script/config_page/config_pix.js"></script>
+</body>
+</html>

@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const row = `
-            <tr data-id="${servico.id}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
+            <tr data-id="${servico.id}" data-nome="${servico.nome}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
                 <td>${servico.nome}</td>
                 <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${servico.tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
                 <td>${valorDisplay}</td>
@@ -120,6 +120,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             </tr>`;
         editServicosTableBody.insertAdjacentHTML('beforeend', row);
         updateEditTotals();
+    });
+
+    // --- ITEM AVULSO (EDIÇÃO) ---
+    const avulsoModalEdit = new bootstrap.Modal(document.getElementById('avulsoModalEdit'));
+    const openAvulsoEditBtn = document.getElementById('edit-open-avulso-modal-btn');
+    const addAvulsoEditBtn = document.getElementById('edit-add-avulso-btn');
+
+    openAvulsoEditBtn.addEventListener('click', () => {
+        document.getElementById('avulso-nome-edit').value = '';
+        document.getElementById('avulso-valor-edit').value = '';
+        document.getElementById('avulso-tipo-edit').value = 'servico';
+        avulsoModalEdit.show();
+    });
+
+    addAvulsoEditBtn.addEventListener('click', () => {
+        const nome = document.getElementById('avulso-nome-edit').value.trim();
+        const valor = parseFloat(document.getElementById('avulso-valor-edit').value) || 0;
+        const tipo = document.getElementById('avulso-tipo-edit').value;
+
+        if (!nome || valor < 0) {
+            alert('Por favor, preencha o nome e um valor válido.');
+            return;
+        }
+
+        let valorDisplay, subtotalDisplay;
+        if(tipo === 'desconto_percentual') {
+            valorDisplay = `${valor.toFixed(2)}%`;
+            subtotalDisplay = `${valor.toFixed(2)}%`;
+        } else if (tipo === 'desconto_fixo') {
+            valorDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            subtotalDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        } else {
+            valorDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            subtotalDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        const row = `
+            <tr data-id="avulso" data-nome="${nome}" data-valor="${valor}" data-tipo="${tipo}">
+                <td><span class="badge bg-secondary me-1">Avulso</span> ${nome}</td>
+                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
+                <td>${valorDisplay}</td>
+                <td class="subtotal">${subtotalDisplay}</td>
+                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
+            </tr>`;
+        
+        editServicosTableBody.insertAdjacentHTML('beforeend', row);
+        updateEditTotals();
+        avulsoModalEdit.hide();
     });
 
     editServicosTableBody.addEventListener('input', e => {
@@ -261,8 +309,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
 
                         const rowHTML = `
-                            <tr data-id="${servico.servico_id}" data-valor="${servico.valor_unitario}" data-tipo="${servico.servico_tipo}">
-                                <td>${servico.servico_nome}</td>
+                            <tr data-id="${servico.servico_id || 'avulso'}" data-nome="${servico.servico_nome}" data-valor="${servico.valor_unitario}" data-tipo="${servico.servico_tipo}">
+                                <td>${(servico.servico_id ? '' : '<span class="badge bg-secondary me-1">Avulso</span> ') + servico.servico_nome}</td>
                                 <td><input type="number" class="form-control form-control-sm qtd-servico" value="${servico.quantidade}" min="1" ${servico.servico_tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
                                 <td>${valorDisplay}</td>
                                 <td class="subtotal">${subtotalDisplay}</td>
@@ -353,10 +401,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             total: parseFloat(editTotalElement.innerText.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()),
             servicos: Array.from(editServicosTableBody.querySelectorAll('tr')).map(row => ({
                 id: row.dataset.id,
+                nome: row.dataset.nome,
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
                 tipo: row.dataset.tipo,
-                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
+                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace('-', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
             }))
         };
 

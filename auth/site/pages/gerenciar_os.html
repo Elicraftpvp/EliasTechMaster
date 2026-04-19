@@ -91,6 +91,9 @@
                         <div class="input-group mb-3">
                             <select class="form-select" id="edit-servicos-select"></select>
                             <button class="btn btn-outline-primary" type="button" id="edit-add-servico-btn">Adicionar</button>
+                            <button class="btn btn-outline-secondary" type="button" id="edit-open-avulso-modal-btn">
+                                <i class="fas fa-plus"></i> Item Avulso
+                            </button>
                         </div>
                         <table class="table">
                             <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
@@ -135,6 +138,42 @@
         </div>
     </div>
 
+
+    <!-- Modal para Item Avulso (Edição) -->
+    <div class="modal fade" id="avulsoModalEdit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar Item Avulso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Serviço/Item</label>
+                        <input type="text" class="form-control" id="avulso-nome-edit" placeholder="Ex: Limpeza especial">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor</label>
+                            <input type="number" step="0.01" class="form-control" id="avulso-valor-edit" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" id="avulso-tipo-edit">
+                                <option value="servico">Serviço</option>
+                                <option value="desconto_fixo">Desconto Fixo (R$)</option>
+                                <option value="desconto_percentual">Desconto (%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="edit-add-avulso-btn">Adicionar à OS</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

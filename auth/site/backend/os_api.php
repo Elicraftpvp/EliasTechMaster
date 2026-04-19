@@ -25,11 +25,11 @@ try {
                 }
 
                 $stmt_servicos = $pdo->prepare("SELECT os_s.*, 
-                                                       s.nome as servico_nome, 
-                                                       s.tipo as servico_tipo,
+                                                       os_s.nome_item as servico_nome, 
+                                                       os_s.tipo_item as servico_tipo,
                                                        s.valor as valor_catalogo 
                                                 FROM os_servicos os_s
-                                                JOIN servicos s ON os_s.servico_id = s.id
+                                                LEFT JOIN servicos s ON os_s.servico_id = s.id
                                                 WHERE os_s.os_id = ?");
                 $stmt_servicos->execute([$id]);
                 $os['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
@@ -66,10 +66,18 @@ try {
             $stmtOs = $pdo->prepare($sqlOs);
             $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total']]);
             $osId = $pdo->lastInsertId();
-            $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
+            $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, nome_item, tipo_item, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmtOsServicos = $pdo->prepare($sqlOsServicos);
             foreach ($data['servicos'] as $servico) {
-                $stmtOsServicos->execute([$osId, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
+                $servicoId = (isset($servico['id']) && is_numeric($servico['id'])) ? (int)$servico['id'] : null;
+                $stmtOsServicos->bindValue(1, $osId);
+                $stmtOsServicos->bindValue(2, $servicoId, $servicoId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtOsServicos->bindValue(3, $servico['nome']);
+                $stmtOsServicos->bindValue(4, $servico['tipo']);
+                $stmtOsServicos->bindValue(5, (int)$servico['qtd']);
+                $stmtOsServicos->bindValue(6, (float)$servico['valorUnitario']);
+                $stmtOsServicos->bindValue(7, (float)$servico['subtotal']);
+                $stmtOsServicos->execute();
             }
             $pdo->commit();
             echo json_encode(['success' => true, 'os_id' => $osId, 'cliente_id' => $clienteId]);
@@ -98,19 +106,29 @@ try {
                 
                 // *** INÍCIO DO GATILHO DE E-MAIL ***
                 if ($data['status'] === 'Concluída') {
-                    $phpPath = 'php'; // Caminho para o executável do PHP. Se estiver no PATH, 'php' basta.
+                    // 1. Registra na fila de e-mails
+                    try {
+                        $stmt_cliente = $pdo->prepare("SELECT c.email, c.nome FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
+                        $stmt_cliente->execute([$id]);
+                        $cliente = $stmt_cliente->fetch();
+                        
+                        if ($cliente && !empty($cliente['email'])) {
+                            $stmt_queue = $pdo->prepare("INSERT INTO email_queue (os_id, destinatario, assunto, status) VALUES (?, ?, ?, 'pendente')");
+                            $assunto = "Sua Ordem de Serviço #" . $id . " foi Concluída!";
+                            $stmt_queue->execute([$id, $cliente['email'], $assunto]);
+                        }
+                    } catch (Exception $e_queue) {
+                        // Logar erro da fila se necessário, mas não parar o processo
+                    }
+
+                    // 2. Dispara o script em segundo plano
+                    $phpPath = 'php'; 
                     $scriptPath = __DIR__ . '/disparar_email_os.php';
-                    
-                    // Prepara o comando para ser executado em segundo plano
-                    // escapeshellarg garante que os argumentos são passados de forma segura
                     $command = $phpPath . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($id);
                     
-                    // Adiciona redirecionamento de saída para rodar em segundo plano (compatível com Linux/Windows)
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                        // Para Windows
                         pclose(popen("start /B " . $command, "r"));
                     } else {
-                        // Para Linux/Mac
                         shell_exec($command . ' > /dev/null 2>&1 &');
                     }
                 }
@@ -130,10 +148,18 @@ try {
                 $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
                 $stmt_delete_servicos = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
                 $stmt_delete_servicos->execute([$id]);
-                $sql_insert_servicos = "INSERT INTO os_servicos (os_id, servico_id, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
+                $sql_insert_servicos = "INSERT INTO os_servicos (os_id, servico_id, nome_item, tipo_item, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt_insert_servicos = $pdo->prepare($sql_insert_servicos);
                 foreach ($data['servicos'] as $servico) {
-                    $stmt_insert_servicos->execute([$id, $servico['id'], (int)$servico['qtd'], (float)$servico['valorUnitario'], (float)$servico['subtotal']]);
+                    $servicoId = (isset($servico['id']) && is_numeric($servico['id'])) ? (int)$servico['id'] : null;
+                    $stmt_insert_servicos->bindValue(1, $id);
+                    $stmt_insert_servicos->bindValue(2, $servicoId, $servicoId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                    $stmt_insert_servicos->bindValue(3, $servico['nome']);
+                    $stmt_insert_servicos->bindValue(4, $servico['tipo']);
+                    $stmt_insert_servicos->bindValue(5, (int)$servico['qtd']);
+                    $stmt_insert_servicos->bindValue(6, (float)$servico['valorUnitario']);
+                    $stmt_insert_servicos->bindValue(7, (float)$servico['subtotal']);
+                    $stmt_insert_servicos->execute();
                 }
                 $pdo->commit();
                 echo json_encode(['success' => true]);

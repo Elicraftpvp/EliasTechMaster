@@ -36,9 +36,19 @@ function gerarPdfParaAnexo(PDO $pdo, int $osId): ?array
         return null; // OS não encontrada
     }
 
-    $stmt_servicos = $pdo->prepare("SELECT os_s.*, s.nome as servico_nome FROM os_servicos os_s JOIN servicos s ON os_s.servico_id = s.id WHERE os_s.os_id = ?");
+    $stmt_servicos = $pdo->prepare("SELECT os_s.*, os_s.nome_item as servico_nome, os_s.tipo_item as servico_tipo FROM os_servicos os_s WHERE os_s.os_id = ?");
     $stmt_servicos->execute([$osId]);
     $data['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
+
+    // Buscar configurações de PIX
+    $stmt_pix = $pdo->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN ('pix_chave', 'pix_nome', 'pix_cidade')");
+    $stmt_pix->execute();
+    $pix_raw = $stmt_pix->fetchAll(PDO::FETCH_KEY_PAIR);
+    $data['pix_config'] = [
+        'chave' => $pix_raw['pix_chave'] ?? '',
+        'nome' => $pix_raw['pix_nome'] ?? '',
+        'cidade' => $pix_raw['pix_cidade'] ?? ''
+    ];
 
     // 2. Gerar o nome do arquivo
     $equipamentoNome = $data['equipamento'] ?? 'Equipamento';
@@ -88,17 +98,32 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS): string
 
     $servicosHtml = '';
     foreach ($data['servicos'] ?? [] as $servico) {
-        $descricaoServico = htmlspecialchars($servico['servico_nome'] ?? $servico['nome'] ?? 'Serviço');
-        $qtd = htmlspecialchars($servico['quantidade'] ?? $servico['qtd'] ?? 1);
-        $valorUnitario = number_format((float)($servico['valor_unitario'] ?? $servico['valorUnitario']), 2, ',', '.');
-        $subtotalFormatado = number_format((float)($servico['subtotal']), 2, ',', '.');
+        $descricaoServico = htmlspecialchars($servico['servico_nome'] ?? 'Serviço');
+        $qtd = htmlspecialchars($servico['quantidade'] ?? 1);
+        $tipo = $servico['servico_tipo'] ?? 'servico';
+        
+        $valorUnit = (float)($servico['valor_unitario'] ?? 0);
+        $subtotal = (float)($servico['subtotal'] ?? 0);
+
+        if ($tipo === 'desconto_percentual') {
+            $valorUnitarioStr = number_format($valorUnit, 2, ',', '.') . '%';
+            $subtotalStr = '-' . number_format($subtotal, 2, ',', '.') . '%'; // O subtotal de % costuma ser guardado como % no banco pela lógica do JS
+            // Se o subtotal for guardado como valor financeiro no banco, precisaria recalcular aqui, 
+            // mas mantendo a lógica atual do sistema que salva o subtotal como % no banco para descontos percentuais.
+        } elseif ($tipo === 'desconto_fixo') {
+            $valorUnitarioStr = 'R$ -' . number_format($valorUnit, 2, ',', '.');
+            $subtotalStr = 'R$ -' . number_format($subtotal, 2, ',', '.');
+        } else {
+            $valorUnitarioStr = 'R$ ' . number_format($valorUnit, 2, ',', '.');
+            $subtotalStr = 'R$ ' . number_format($subtotal, 2, ',', '.');
+        }
 
         $servicosHtml .= "
             <tr>
                 <td>" . $descricaoServico . "</td>
                 <td>" . $qtd . "</td>
-                <td>R$ " . $valorUnitario . "</td>
-                <td>R$ " . $subtotalFormatado . "</td>
+                <td>" . $valorUnitarioStr . "</td>
+                <td>" . $subtotalStr . "</td>
             </tr>
         ";
     }
@@ -107,10 +132,10 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS): string
     $totalFormatado = number_format($totalFloat, 2, ',', '.');
 
     $pixHtml = '';
-    if ($totalFloat > 0) {
-        $chavePix = "+5548998339706";
-        $nomeBeneficiario = "ELIAS GUSTAVO KERSTEN";
-        $cidadeBeneficiario = "SAO JOSE";
+    if ($totalFloat > 0 && !empty($data['pix_config']['chave'])) {
+        $chavePix = $data['pix_config']['chave'];
+        $nomeBeneficiario = $data['pix_config']['nome'];
+        $cidadeBeneficiario = $data['pix_config']['cidade'];
         $txid = preg_replace('/[^a-zA-Z0-9]/', '', $numeroOS);
         $codigoPix = gerarCodigoPIX($chavePix, $nomeBeneficiario, $cidadeBeneficiario, $totalFloat, $txid);
         $qrCodeBase64 = gerarQRCodeBase64($codigoPix);

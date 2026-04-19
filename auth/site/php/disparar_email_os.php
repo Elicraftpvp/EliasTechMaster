@@ -1,66 +1,42 @@
 <?php
-// Versão de Depuração - Registra cada passo
+require_once 'conexao.php';
+require_once 'email.php';
 
-// Este script é projetado para ser chamado em segundo plano.
-// Ele não deve produzir nenhuma saída (echo/print).
-
-$logFile = __DIR__ . '/../mail/email_trigger.log';
-// Limpa o log antigo para facilitar a leitura a cada nova tentativa.
-if (file_exists($logFile)) { unlink($logFile); }
-
-function log_message($message) {
-    global $logFile;
-    file_put_contents($logFile, date('[Y-m-d H:i:s] ') . $message . "\n", FILE_APPEND);
+if ($argc < 2) {
+    echo "Uso: php disparar_email_os.php <os_id>\n";
+    exit(1);
 }
 
-log_message("--- INICIANDO SCRIPT DE DISPARO DE E-MAIL ---");
-
-// Pega o ID da OS passado como argumento da linha de comando
-if (!isset($argv[1]) || (int)$argv[1] <= 0) {
-    log_message("ERRO FATAL: ID da OS não foi fornecido ou é inválido. Argumento recebido: " . ($argv[1] ?? 'NENHUM'));
-    exit;
-}
 $osId = (int)$argv[1];
-log_message("ID da OS recebido: #" . $osId);
-
-// Verificando e incluindo arquivos necessários
-$files_to_include = [
-    'conexao.php',
-    'email.php' // Lembre-se que email.php já inclui gerar_pdf.php
-];
-
-foreach ($files_to_include as $file) {
-    $filePath = __DIR__ . '/' . $file;
-    log_message("Verificando arquivo: " . $filePath);
-    if (file_exists($filePath)) {
-        log_message("Arquivo encontrado. Incluindo " . $file . "...");
-        require_once $filePath;
-        log_message("Arquivo " . $file . " incluído com sucesso.");
-    } else {
-        log_message("ERRO FATAL: O arquivo obrigatório '" . $file . "' não foi encontrado no caminho: " . $filePath);
-        exit; // Para a execução se um arquivo essencial faltar
-    }
-}
-
-log_message("Todos os arquivos foram incluídos. Tentando enviar e-mail...");
 
 try {
-    // A variável $pdo deve estar disponível a partir do 'conexao.php'
-    if (!isset($pdo)) {
-        log_message("ERRO FATAL: A variável de conexão \$pdo não foi definida após incluir conexao.php.");
-        exit;
-    }
-
-    // Chama a função que gera o PDF e envia o e-mail com anexo.
+    // 1. Tentar enviar o e-mail
     $resultado = enviarEmailOsComAnexo($pdo, $osId);
+    
+    // 2. Atualizar o status na fila (email_queue)
+    // Buscamos o ID mais recente para esta OS que esteja 'pendente' ou 'erro'
+    $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? ORDER BY id DESC LIMIT 1");
+    $stmt_find->execute([$osId]);
+    $queueItem = $stmt_find->fetch();
+
+    if ($queueItem) {
+        $queueId = $queueItem['id'];
+        if ($resultado['success']) {
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'enviado', ultima_tentativa = NOW(), erro = NULL WHERE id = ?");
+            $stmt_upd->execute([$queueId]);
+        } else {
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'erro', ultima_tentativa = NOW(), erro = ? WHERE id = ?");
+            $stmt_upd->execute([$resultado['message'], $queueId]);
+        }
+    }
 
     if ($resultado['success']) {
-        log_message("SUCESSO: E-mail para a OS #" . $osId . " foi processado com sucesso pela função.");
+        echo "E-mail enviado com sucesso para a OS #$osId.\n";
     } else {
-        log_message("FALHA: A função de envio retornou um erro para a OS #" . $osId . ". Motivo: " . $resultado['message']);
+        echo "Falha ao enviar e-mail para a OS #$osId: " . $resultado['message'] . "\n";
     }
-} catch (Throwable $e) { // Captura qualquer tipo de erro ou exceção
-    log_message("ERRO CRÍTICO no bloco try-catch: " . $e->getMessage() . " no arquivo " . $e->getFile() . " na linha " . $e->getLine());
-}
 
-log_message("--- FIM DO SCRIPT DE DISPARO DE E-MAIL ---");
+} catch (Exception $e) {
+    echo "Erro inesperado no disparar_email_os.php: " . $e->getMessage() . "\n";
+}
+?>

@@ -22,6 +22,11 @@ try {
     // Determina o tipo de recurso que está sendo solicitado
     $tipo = $_GET['tipo'] ?? ($input['tipo'] ?? null);
 
+    // DEBUG: Se o tipo for nulo, tenta pegar de outras formas
+    if (!$tipo) {
+        $tipo = $_REQUEST['tipo'] ?? null;
+    }
+
     switch ($tipo) {
         case 'email_completo':
             handle_email_completo($pdo, $method, $input);
@@ -31,10 +36,19 @@ try {
         case 'usuarios':
             handle_usuarios($pdo, $method, $input, $_GET);
             break;
+        
+        case 'pix':
+            handle_pix($pdo, $method, $input);
+            break;
+
+        case 'fila_email':
+            handle_fila_email($pdo, $method, $input, $_GET);
+            break;
 
         default:
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Tipo de requisição inválido.']);
+            $msg = 'Tipo de requisição inválido. Recebido: ' . ($tipo ?: 'null');
+            echo json_encode(['success' => false, 'message' => $msg]);
             break;
     }
 
@@ -263,6 +277,94 @@ function handle_usuarios($pdo, $method, $input, $get) {
         } else {
              echo json_encode(['success' => false, 'message' => 'Erro no banco de dados: ' . $e->getMessage()]);
         }
+    }
+}
+
+/**
+ * Funções Auxiliares para Configurações no Banco
+ */
+function get_config($pdo, $chave, $default = '') {
+    $stmt = $pdo->prepare("SELECT valor FROM configuracoes WHERE chave = ?");
+    $stmt->execute([$chave]);
+    $res = $stmt->fetch();
+    return $res ? $res['valor'] : $default;
+}
+
+function set_config($pdo, $chave, $valor) {
+    $stmt = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = ?");
+    return $stmt->execute([$chave, $valor, $valor]);
+}
+
+/**
+ * Manipula as configurações de PIX
+ */
+function handle_pix($pdo, $method, $input) {
+    if ($method == 'GET') {
+        echo json_encode([
+            'pix_chave' => get_config($pdo, 'pix_chave'),
+            'pix_nome' => get_config($pdo, 'pix_nome'),
+            'pix_cidade' => get_config($pdo, 'pix_cidade')
+        ]);
+    } elseif ($method == 'PUT' || $method == 'POST') {
+        set_config($pdo, 'pix_chave', $input['pix_chave'] ?? '');
+        set_config($pdo, 'pix_nome', $input['pix_nome'] ?? '');
+        set_config($pdo, 'pix_cidade', $input['pix_cidade'] ?? '');
+        echo json_encode(['success' => true, 'message' => 'Configurações de PIX salvas com sucesso!']);
+    } else {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+    }
+}
+
+/**
+ * Manipula a fila de e-mails
+ */
+function handle_fila_email($pdo, $method, $input, $get) {
+    switch ($method) {
+        case 'GET':
+            $stmt = $pdo->query("SELECT * FROM email_queue ORDER BY id DESC LIMIT 100");
+            echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+            break;
+        
+        case 'POST':
+            $acao = $input['acao'] ?? '';
+            if ($acao === 'reenviar') {
+                $id = $input['id'] ?? null;
+                $stmt = $pdo->prepare("SELECT os_id FROM email_queue WHERE id = ?");
+                $stmt->execute([$id]);
+                $item = $stmt->fetch();
+                if ($item) {
+                    // Atualiza status para pendente para o script processar
+                    $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'pendente', erro = NULL WHERE id = ?");
+                    $stmt_upd->execute([$id]);
+
+                    // Dispara o script novamente
+                    $phpPath = 'php'; 
+                    $scriptPath = __DIR__ . '/disparar_email_os.php';
+                    $command = $phpPath . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($item['os_id']);
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        pclose(popen("start /B " . $command, "r"));
+                    } else {
+                        shell_exec($command . ' > /dev/null 2>&1 &');
+                    }
+                    echo json_encode(['success' => true, 'message' => 'Tentativa de reenvio disparada!']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Item não encontrado.']);
+                }
+            }
+            break;
+
+        case 'DELETE':
+            $id = $input['id'] ?? null;
+            $stmt = $pdo->prepare("DELETE FROM email_queue WHERE id = ?");
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true, 'message' => 'Item excluído da fila.']);
+            break;
+
+        default:
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
+            break;
     }
 }
 ?>

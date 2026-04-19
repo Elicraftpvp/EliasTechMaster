@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const row = `
-            <tr data-id="${servico.id}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
+            <tr data-id="${servico.id}" data-nome="${servico.nome}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
                 <td>${servico.nome}</td>
                 <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${servico.tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
                 <td>${valorDisplay}</td>
@@ -110,6 +110,54 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`;
         servicosTableBody.insertAdjacentHTML('beforeend', row);
         updateTotal();
+    });
+
+    // --- ITEM AVULSO ---
+    const avulsoModal = new bootstrap.Modal(document.getElementById('avulsoModal'));
+    const openAvulsoBtn = document.getElementById('open-avulso-modal-btn');
+    const addAvulsoBtn = document.getElementById('add-avulso-btn');
+
+    openAvulsoBtn.addEventListener('click', () => {
+        document.getElementById('avulso-nome').value = '';
+        document.getElementById('avulso-valor').value = '';
+        document.getElementById('avulso-tipo').value = 'servico';
+        avulsoModal.show();
+    });
+
+    addAvulsoBtn.addEventListener('click', () => {
+        const nome = document.getElementById('avulso-nome').value.trim();
+        const valor = parseFloat(document.getElementById('avulso-valor').value) || 0;
+        const tipo = document.getElementById('avulso-tipo').value;
+
+        if (!nome || valor < 0) {
+            alert('Por favor, preencha o nome e um valor válido.');
+            return;
+        }
+
+        let valorDisplay, subtotalDisplay;
+        if(tipo === 'desconto_percentual') {
+            valorDisplay = `${valor.toFixed(2)}%`;
+            subtotalDisplay = `${valor.toFixed(2)}%`;
+        } else if (tipo === 'desconto_fixo') {
+            valorDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+            subtotalDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+        } else {
+            valorDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            subtotalDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        const row = `
+            <tr data-id="avulso" data-nome="${nome}" data-valor="${valor}" data-tipo="${tipo}">
+                <td><span class="badge bg-secondary me-1">Avulso</span> ${nome}</td>
+                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
+                <td>${valorDisplay}</td>
+                <td class="subtotal">${subtotalDisplay}</td>
+                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
+            </tr>`;
+        
+        servicosTableBody.insertAdjacentHTML('beforeend', row);
+        updateTotal();
+        avulsoModal.hide();
     });
 
     servicosTableBody.addEventListener('input', e => {
@@ -188,10 +236,11 @@ document.addEventListener('DOMContentLoaded', () => {
             total: parseFloat(totalOsElement.textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()),
             servicos: Array.from(servicosTableBody.querySelectorAll('tr')).map(row => ({
                 id: row.dataset.id,
+                nome: row.dataset.nome,
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
                 tipo: row.dataset.tipo,
-                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
+                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace('-', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
             }))
         };
         

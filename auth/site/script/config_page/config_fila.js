@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${item.destinatario}</td>
                         <td>${item.assunto}</td>
                         <td>${statusBadge}</td>
-                        <td>${new Date(item.ultima_tentativa).toLocaleString('pt-BR')}</td>
+                        <td>${item.ultima_tentativa ? new Date(item.ultima_tentativa).toLocaleString('pt-BR') : 'Nunca'}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" title="Reenviar" disabled><i class="fas fa-paper-plane"></i></button>
-                            <button class="btn btn-sm btn-danger" title="Excluir" disabled><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-sm btn-primary btn-reenviar" title="Reenviar" data-id="${item.id}" ${item.status === 'enviado' ? 'disabled' : ''}><i class="fas fa-paper-plane"></i></button>
+                            <button class="btn btn-sm btn-danger btn-excluir" title="Excluir" data-id="${item.id}"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
                 tableBodyFilaEmail.innerHTML += row;
@@ -48,6 +48,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
     btnRecarregarFila.addEventListener('click', carregarFilaEmail);
+
+    tableBodyFilaEmail.addEventListener('click', async (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+
+        const id = button.dataset.id;
+
+        if (button.classList.contains('btn-reenviar')) {
+            button.disabled = true;
+            try {
+                const response = await fetch(`../${API_BASE_URL}/configuracoes_api.php?tipo=fila_email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo: 'fila_email', acao: 'reenviar', id: id })
+                });
+                const res = await response.json();
+                alert(res.message);
+                carregarFilaEmail();
+            } catch (error) {
+                alert('Erro ao reenviar e-mail.');
+                button.disabled = false;
+            }
+        }
+
+        if (button.classList.contains('btn-excluir')) {
+            if (!confirm('Deseja excluir este item da fila?')) return;
+            try {
+                const response = await fetch(`../${API_BASE_URL}/configuracoes_api.php?tipo=fila_email`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipo: 'fila_email', id: id })
+                });
+                const res = await response.json();
+                alert(res.message);
+                carregarFilaEmail();
+            } catch (error) {
+                alert('Erro ao excluir item.');
+            }
+        }
+    });
 
     // --- INICIALIZAÇÃO ---
     carregarFilaEmail();
