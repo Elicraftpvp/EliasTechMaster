@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const carregarConfigEmail = async () => {
         try {
-            const response = await fetch(`../../php/configuracoes_api.php?tipo=email_completo`);
+            const response = await fetch(`../../backend/configuracoes_api.php?tipo=email_completo`);
             if (!response.ok) throw new Error('Erro ao buscar configurações de e-mail.');
             
             const config = await response.json();
@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`../../php/configuracoes_api.php`, {
+            const response = await fetch(`../../backend/configuracoes_api.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch(`../../php/configuracoes_api.php`, {
+            const response = await fetch(`../../backend/configuracoes_api.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`../../php/configuracoes_api.php`, {
+            const response = await fetch(`../../backend/configuracoes_api.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const carregarOSParaModal = async () => {
         try {
-            const response = await fetch('../../php/os_api.php');
+            const response = await fetch('../../backend/os_api.php');
             if (!response.ok) throw new Error('Falha ao buscar Ordens de Serviço.');
             const oss = await response.json();
             
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const response = await fetch(`../../php/configuracoes_api.php`, {
+            const response = await fetch(`../../backend/configuracoes_api.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)

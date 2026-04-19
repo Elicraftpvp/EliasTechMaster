@@ -5,3 +5,4 @@ phpqrcode/
 !*.php
 email_config.json
 email_trigger.log
+auth/site/backend/conexao.php
