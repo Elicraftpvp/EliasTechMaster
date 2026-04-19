@@ -43,33 +43,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- LÓGICA DE CÁLCULO DE TOTAL ---
     const updateTotal = () => {
-        let subtotalServicos = 0;
-        let totalDescontoFixo = 0;
-        let totalDescontoPercentual = 0;
-
+        let runningTotal = 0;
         servicosTableBody.querySelectorAll('tr').forEach(row => {
             const qtd = parseFloat(row.querySelector('.qtd-servico').value) || 1;
             const valorUnitario = parseFloat(row.dataset.valor);
             const tipo = row.dataset.tipo;
-            let subtotal = qtd * valorUnitario;
-
+            
+            let impacto = 0;
             if (tipo === 'servico') {
-                subtotalServicos += subtotal;
-                row.querySelector('.subtotal').textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                impacto = qtd * valorUnitario;
             } else if (tipo === 'desconto_fixo') {
-                totalDescontoFixo += subtotal;
-                // Exibe como negativo
-                row.querySelector('.subtotal').textContent = `-${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                impacto = -(qtd * valorUnitario);
             } else if (tipo === 'desconto_percentual') {
-                totalDescontoPercentual += subtotal; // Soma as porcentagens
-                row.querySelector('.subtotal').textContent = `${subtotal.toFixed(2)}%`;
+                impacto = -(runningTotal * (valorUnitario / 100));
             }
+
+            runningTotal += impacto;
+            
+            // Armazena o impacto individual no dataset para facilitar o salvamento posterior
+            row.dataset.impactoIndividual = impacto;
+
+            // Exibe o total acumulado na coluna Subtotal
+            row.querySelector('.subtotal').textContent = runningTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         });
         
-        const valorDoDescontoPercentual = subtotalServicos * (totalDescontoPercentual / 100);
-        const totalFinal = subtotalServicos - totalDescontoFixo - valorDoDescontoPercentual;
-        
-        totalOsElement.textContent = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        totalOsElement.textContent = runningTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
     // --- MANIPULAÇÃO DE SERVIÇOS ---
@@ -240,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
                 tipo: row.dataset.tipo,
-                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace('-', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
+                subtotal: row.dataset.impactoIndividual || 0
             }))
         };
         

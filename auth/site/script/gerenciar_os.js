@@ -34,32 +34,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- LÓGICA DE CÁLCULO DE TOTAL (MODAL DE EDIÇÃO) ---
     const updateEditTotals = () => {
-        let subtotalServicos = 0;
-        let totalDescontoFixo = 0;
-        let totalDescontoPercentual = 0;
-
+        let runningTotal = 0;
         editServicosTableBody.querySelectorAll('tr').forEach(row => {
             const qtd = parseFloat(row.querySelector('.qtd-servico').value) || 1;
             const valorUnitario = parseFloat(row.dataset.valor);
             const tipo = row.dataset.tipo;
-            let subtotal = qtd * valorUnitario;
-
+            
+            let impacto = 0;
             if (tipo === 'servico') {
-                subtotalServicos += subtotal;
-                row.querySelector('.subtotal').textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                impacto = qtd * valorUnitario;
             } else if (tipo === 'desconto_fixo') {
-                totalDescontoFixo += subtotal;
-                row.querySelector('.subtotal').textContent = `-${subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                impacto = -(qtd * valorUnitario);
             } else if (tipo === 'desconto_percentual') {
-                totalDescontoPercentual += subtotal;
-                row.querySelector('.subtotal').textContent = `${subtotal.toFixed(2)}%`;
+                impacto = -(runningTotal * (valorUnitario / 100));
             }
+
+            runningTotal += impacto;
+            
+            row.dataset.impactoIndividual = impacto;
+            row.querySelector('.subtotal').textContent = runningTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         });
 
-        const valorDoDescontoPercentual = subtotalServicos * (totalDescontoPercentual / 100);
-        const totalFinal = subtotalServicos - totalDescontoFixo - valorDoDescontoPercentual;
-        
-        editTotalElement.textContent = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        editTotalElement.textContent = runningTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
     // --- CARREGAMENTO DE DADOS ---
@@ -405,7 +401,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 qtd: row.querySelector('.qtd-servico').value,
                 valorUnitario: row.dataset.valor,
                 tipo: row.dataset.tipo,
-                subtotal: parseFloat(row.querySelector('.subtotal').textContent.replace('R$', '').replace('-', '').replace(/\./g, '').replace(',', '.').replace('%','').trim())
+                subtotal: row.dataset.impactoIndividual || 0
             }))
         };
 

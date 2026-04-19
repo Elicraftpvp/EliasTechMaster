@@ -70,23 +70,28 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS): string
     }
 
     $servicosHtml = '';
+    $runningTotal = 0;
     foreach ($data['servicos'] ?? [] as $servico) {
         $descricaoServico = htmlspecialchars($servico['servico_nome'] ?? 'Serviço');
-        $qtd = htmlspecialchars($servico['quantidade'] ?? 1);
+        $qtd = (int)($servico['quantidade'] ?? 1);
         $tipo = $servico['servico_tipo'] ?? 'servico';
         $valorUnit = (float)($servico['valor_unitario'] ?? 0);
-        $subtotal = (float)($servico['subtotal'] ?? 0);
-
+        
+        $impacto = 0;
         if ($tipo === 'desconto_percentual') {
             $valorUnitarioStr = number_format($valorUnit, 2, ',', '.') . '%';
-            $subtotalStr = '-' . number_format($subtotal, 2, ',', '.') . '%'; 
+            // Desconto percentual é aplicado sobre o total acumulado até o momento
+            $impacto = -($runningTotal * ($valorUnit / 100));
         } elseif ($tipo === 'desconto_fixo') {
             $valorUnitarioStr = 'R$ -' . number_format($valorUnit, 2, ',', '.');
-            $subtotalStr = 'R$ -' . number_format($subtotal, 2, ',', '.');
+            $impacto = -($valorUnit * $qtd);
         } else {
             $valorUnitarioStr = 'R$ ' . number_format($valorUnit, 2, ',', '.');
-            $subtotalStr = 'R$ ' . number_format($subtotal, 2, ',', '.');
+            $impacto = ($valorUnit * $qtd);
         }
+
+        $runningTotal += $impacto;
+        $subtotalStr = 'R$ ' . number_format($runningTotal, 2, ',', '.');
 
         $servicosHtml .= "<tr><td>$descricaoServico</td><td>$qtd</td><td>$valorUnitarioStr</td><td>$subtotalStr</td></tr>";
     }
