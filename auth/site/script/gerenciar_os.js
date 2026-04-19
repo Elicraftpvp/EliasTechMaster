@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tipo = row.dataset.tipo;
             
             let impacto = 0;
-            if (tipo === 'servico') {
+            if (tipo === 'servico' || tipo === 'peca') {
                 impacto = qtd * valorUnitario;
             } else if (tipo === 'desconto_fixo') {
                 impacto = -(qtd * valorUnitario);
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (tipo === 'desconto_fixo') {
             valorDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
             subtotalDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-        } else {
+        } else if (tipo === 'peca' || tipo === 'servico') {
             valorDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             subtotalDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }

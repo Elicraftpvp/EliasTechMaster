@@ -86,6 +86,7 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS): string
             $valorUnitarioStr = 'R$ -' . number_format($valorUnit, 2, ',', '.');
             $impacto = -($valorUnit * $qtd);
         } else {
+            // Caso seja 'servico' ou 'peca'
             $valorUnitarioStr = 'R$ ' . number_format($valorUnit, 2, ',', '.');
             $impacto = ($valorUnit * $qtd);
         }

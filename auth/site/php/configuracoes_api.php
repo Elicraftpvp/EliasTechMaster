@@ -277,11 +277,29 @@ function handle_fila_email($pdo, $method, $input, $get) {
                 $item = $stmt->fetch();
                 if ($item) {
                     $pdo->prepare("UPDATE email_queue SET status = 'pendente', erro = NULL WHERE id = ?")->execute([$id]);
-                    $phpPath = 'php'; 
-                    $scriptPath = __DIR__ . '/disparar_email_os.php';
-                    $command = $phpPath . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($item['os_id']);
+                    // Tenta detectar o caminho do PHP no XAMPP ou usa o padrão
+                    $phpPath = 'php';
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                        pclose(popen("start /B " . $command, "r"));
+                        $possiveis = [
+                            'C:\\xampp\\php\\php.exe',
+                            'D:\\xampp\\php\\php.exe',
+                            'B:\\Programs\\XAMPP\\php\\php.exe',
+                            dirname(__DIR__, 5) . '\\php\\php.exe',
+                            'php'
+                        ];
+                        foreach ($possiveis as $p) {
+                            if ($p === 'php' || file_exists($p)) {
+                                $phpPath = $p;
+                                break;
+                            }
+                        }
+                    }
+
+                    $scriptPath = __DIR__ . '/disparar_email_os.php';
+                    $command = escapeshellarg($phpPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($item['os_id']);
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        // Usamos "" para o título para evitar que o caminho do PHP seja interpretado como tal
+                        pclose(popen("start /B \"\" " . $command, "r"));
                     } else {
                         shell_exec($command . ' > /dev/null 2>&1 &');
                     }
