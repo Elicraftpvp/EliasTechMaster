@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Falha ao carregar configurações de e-mail:', error);
-            alert('Não foi possível carregar as configurações de e-mail.');
+            showAlert('Não foi possível carregar as configurações de e-mail.', 'error', 'Erro de Carregamento');
         }
     };
 
@@ -74,12 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Erro ao salvar configurações.');
             }
-            alert(result.message);
+            showToast('Configurações salvas!', 'success');
             document.getElementById('smtp_pass').value = '';
             document.getElementById('smtp_pass').placeholder = 'Preenchido (digite para alterar)';
         } catch (error) {
             console.error('Falha ao salvar configurações de e-mail:', error);
-            alert(`Ocorreu um erro: ${error.message}`);
+            showAlert(`Ocorreu um erro: ${error.message}`, 'error', 'Erro ao Salvar');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-save"></i> Salvar Todas as Configurações';
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (!data.smtp_pass && document.getElementById('smtp_pass').placeholder.includes('alterar') === false) {
-             alert('Para testar a conexão, a senha do e-mail precisa ser preenchida no campo "Senha". Ela não será salva com esta ação.');
+             showAlert('Para testar a conexão, a senha do e-mail precisa ser preenchida no campo "Senha". Ela não será salva com esta ação.', 'warning', 'Senha Necessária');
              btn.disabled = false;
              btn.innerHTML = '<i class="fas fa-plug"></i> Testar Conexão (SMTP)';
              return;
@@ -124,10 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Erro desconhecido no teste de conexão.');
             }
-            alert(result.message);
+            showAlert(result.message, 'success', 'Conexão SMTP');
         } catch (error) {
             console.error('Falha ao testar conexão SMTP:', error);
-            alert(`Falha no teste: ${error.message}`);
+            showAlert(`Falha no teste: ${error.message}`, 'error', 'Erro de Conexão');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-plug"></i> Testar Conexão (SMTP)';
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const destinatario = document.getElementById('test_email_recipient').value;
 
         if (!destinatario) {
-            alert('Por favor, informe um e-mail de destinatário para o teste.');
+            showAlert('Por favor, informe um e-mail de destinatário para o teste.', 'warning', 'Campo Faltando');
             return;
         }
 
@@ -164,10 +164,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Erro desconhecido ao enviar e-mail de teste.');
             }
-            alert(result.message);
+            showToast('E-mail de teste enviado!', 'success');
         } catch (error) {
             console.error('Falha ao enviar e-mail de teste:', error);
-            alert(`Falha no envio: ${error.message}`);
+            showAlert(`Falha no envio: ${error.message}`, 'error', 'Erro de Envio');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar E-mail de Teste Simples';
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const enviarEmailTesteReal = async () => {
         if (!osSelecionadaId) {
-            alert('Nenhuma OS foi selecionada para o teste.');
+            showAlert('Nenhuma OS foi selecionada para o teste.', 'warning', 'Atenção');
             return;
         }
 
@@ -260,10 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !result.success) {
                 throw new Error(result.message || 'Erro desconhecido ao enviar e-mail de teste real.');
             }
-            alert(result.message);
+            showToast('E-mail de teste real enviado!', 'success');
         } catch (error) {
             console.error('Falha ao enviar e-mail de teste real:', error);
-            alert(`Falha no envio: ${error.message}`);
+            showAlert(`Falha no envio: ${error.message}`, 'error', 'Erro de Envio');
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar E-mail de Teste Real';

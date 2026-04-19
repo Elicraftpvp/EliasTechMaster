@@ -8,94 +8,93 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../style/css.css">
 </head>
-<body id="page-dashboard" class="iframe-page">
+<body id="page-dashboard" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4"><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
         
         <div class="row">
             <!-- Coluna de Navegação/Botões Empilhados -->
             <div class="col-lg-4 col-md-5">
-                <div class="list-group">
-                    <a href="#" id="btn-nav-os-abertas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-folder-open fa-fw me-2 text-primary"></i>
-                            <strong>OS Abertas</strong>
-                        </div>
-                        <span id="count-os-abertas" class="badge bg-primary rounded-pill">0</span>
-                    </a>
-                    <a href="#" id="btn-nav-os-andamento" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-cogs fa-fw me-2 text-warning"></i>
-                            <strong>OS em Andamento</strong>
-                        </div>
-                        <span id="count-os-andamento" class="badge bg-warning rounded-pill">0</span>
-                    </a>
-                    <a href="#" id="btn-nav-os-finalizadas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-check-circle fa-fw me-2 text-success"></i>
-                            <strong>OS Finalizadas</strong>
-                        </div>
-                        <span id="count-os-finalizadas" class="badge bg-success rounded-pill">0</span>
-                    </a>
-                    <a href="#" id="btn-nav-clientes" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-users fa-fw me-2 text-info"></i>
-                            <strong>Clientes Cadastrados</strong>
-                        </div>
-                        <span id="count-clientes" class="badge bg-info rounded-pill">0</span>
-                    </a>
+                <div class="glass-card overflow-hidden shadow-sm">
+                    <div class="list-group list-group-flush">
+                        <a href="#" id="btn-nav-os-abertas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="fas fa-folder-open fa-fw me-2 text-primary"></i>
+                                <span class="fw-bold">OS Abertas</span>
+                            </div>
+                            <span id="count-os-abertas" class="badge bg-primary rounded-pill">0</span>
+                        </a>
+                        <a href="#" id="btn-nav-os-andamento" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="fas fa-cogs fa-fw me-2 text-warning"></i>
+                                <span class="fw-bold">OS em Andamento</span>
+                            </div>
+                            <span id="count-os-andamento" class="badge bg-warning rounded-pill">0</span>
+                        </a>
+                        <a href="#" id="btn-nav-os-finalizadas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="fas fa-check-circle fa-fw me-2 text-success"></i>
+                                <span class="fw-bold">OS Finalizadas</span>
+                            </div>
+                            <span id="count-os-finalizadas" class="badge bg-success rounded-pill">0</span>
+                        </a>
+                        <a href="#" id="btn-nav-clientes" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <i class="fas fa-users fa-fw me-2 text-info"></i>
+                                <span class="fw-bold">Clientes Cadastrados</span>
+                            </div>
+                            <span id="count-clientes" class="badge bg-info rounded-pill">0</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <!-- Coluna de Conteúdo/Listas -->
             <div class="col-lg-8 col-md-7 mt-4 mt-md-0">
                 <!-- Card para OS Abertas -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-stream me-2"></i>Últimas OS Abertas</h5>
+                <div class="glass-card mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-stream me-2"></i>Últimas OS Abertas</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <ul class="list-group list-group-flush dashboard-list" id="lista-os-abertas">
-                            <!-- Conteúdo será preenchido via JS -->
-                            <li class="list-group-item text-center"><div class="spinner-border spinner-border-sm"></div></li>
+                            <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></li>
                         </ul>
                     </div>
                 </div>
 
                 <!-- Card para OS em Andamento -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-spinner fa-spin me-2"></i>OS em Andamento</h5>
+                <div class="glass-card mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-warning"><i class="fas fa-spinner fa-spin me-2"></i>OS em Andamento</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <ul class="list-group list-group-flush dashboard-list" id="lista-os-andamento">
-                             <li class="list-group-item text-center"><div class="spinner-border spinner-border-sm"></div></li>
+                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-warning"></div></li>
                         </ul>
                     </div>
                 </div>
 
                 <!-- Card para OS Finalizadas -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Últimas OS Finalizadas</h5>
+                <div class="glass-card mb-4 overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-success"><i class="fas fa-history me-2"></i>Últimas OS Finalizadas</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <ul class="list-group list-group-flush dashboard-list" id="lista-os-finalizadas">
-                             <!-- Conteúdo será preenchido via JS -->
-                             <li class="list-group-item text-center"><div class="spinner-border spinner-border-sm"></div></li>
+                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-success"></div></li>
                         </ul>
                     </div>
                 </div>
 
                  <!-- Card para Clientes -->
-                 <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Últimos Clientes Adicionados</h5>
+                 <div class="glass-card overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-info"><i class="fas fa-user-plus me-2"></i>Últimos Clientes Adicionados</h6>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <ul class="list-group list-group-flush dashboard-list" id="lista-clientes">
-                             <!-- Conteúdo será preenchido via JS -->
-                             <li class="list-group-item text-center"><div class="spinner-border spinner-border-sm"></div></li>
+                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></li>
                         </ul>
                     </div>
                 </div>

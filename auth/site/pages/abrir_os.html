@@ -38,57 +38,62 @@
         }
     </style>
 </head>
-<body id="page-abrir-os" class="iframe-page">
+<body id="page-abrir-os" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4"><i class="fas fa-plus-circle"></i> Abrir Nova Ordem de Serviço</h2>
-        <form id="os-form" class="card shadow-sm" onsubmit="return false;">
-            <div class="card-body">
-                <h5>1. Dados do Cliente</h5>
+        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-plus-circle"></i> Abrir Nova Ordem de Serviço</h2>
+        <form id="os-form" class="glass-card p-4" onsubmit="return false;">
+            <div class="card-body p-0">
+                <h5 class="fw-bold mb-4 text-secondary">1. Dados do Cliente</h5>
                 <div class="row">
                     <!-- Campo oculto para guardar o ID do cliente selecionado -->
                     <input type="hidden" id="cliente_id">
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Nome</label>
+                        <label class="form-label fw-medium">Nome</label>
                         <div class="search-results-container">
-                            <input type="text" class="form-control" id="cliente_nome" required autocomplete="off">
+                            <input type="text" class="form-control" id="cliente_nome" placeholder="Busque ou digite o nome..." required autocomplete="off">
                             <!-- Div para exibir os resultados da busca -->
-                            <div id="search-results"></div>
+                            <div id="search-results" class="glass-card shadow-lg mt-1 overflow-hidden" style="border-radius: 10px;"></div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">Telefone</label>
-                        <input type="text" class="form-control" id="cliente_telefone">
+                        <label class="form-label fw-medium">Telefone</label>
+                        <input type="text" class="form-control" id="cliente_telefone" placeholder="(00) 00000-0000">
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label">E-mail</label>
-                        <input type="email" class="form-control" id="cliente_email">
+                        <label class="form-label fw-medium">E-mail</label>
+                        <input type="email" class="form-control" id="cliente_email" placeholder="cliente@email.com">
                     </div>
                 </div>
 
-                <h5>2. Informações do Equipamento</h5>
-                <div class="mb-3"><label class="form-label">Equipamento / Produto</label><input type="text" class="form-control" id="equipamento" required></div>
-                <div class="mb-3"><label class="form-label">Problema Informado</label><textarea class="form-control" id="problema" rows="2"></textarea></div>
-                <div class="mb-3"><label class="form-label">Laudo Técnico</label><textarea class="form-control" id="laudo" rows="2"></textarea></div>
+                <h5 class="fw-bold mb-4 mt-4 text-secondary">2. Informações do Equipamento</h5>
+                <div class="mb-3"><label class="form-label fw-medium">Equipamento / Produto</label><input type="text" class="form-control" id="equipamento" placeholder="Ex: Notebook Dell Inspiron" required></div>
+                <div class="mb-3"><label class="form-label fw-medium">Problema Informado</label><textarea class="form-control" id="problema" rows="2" placeholder="Descreva o problema relatado pelo cliente..."></textarea></div>
+                <div class="mb-3"><label class="form-label fw-medium">Laudo Técnico</label><textarea class="form-control" id="laudo" rows="2" placeholder="Sua análise técnica inicial..."></textarea></div>
 
-                <h5>3. Serviços Realizados</h5>
-                <div class="input-group mb-3">
-                    <select class="form-select" id="servicos-select"></select>
-                    <button class="btn btn-outline-primary" type="button" id="add-servico-btn">Adicionar</button>
-                    <button class="btn btn-outline-secondary" type="button" id="open-avulso-modal-btn">
+                <h5 class="fw-bold mb-4 mt-4 text-secondary">3. Serviços Realizados</h5>
+                <div class="input-group mb-4 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+                    <select class="form-select border-0 bg-white" id="servicos-select"></select>
+                    <button class="btn btn-primary" type="button" id="add-servico-btn">Adicionar</button>
+                    <button class="btn btn-outline-primary bg-white" type="button" id="open-avulso-modal-btn">
                         <i class="fas fa-plus"></i> Item Avulso
                     </button>
                 </div>
-                <table class="table">
-                    <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
-                    <tbody id="servicos-selecionados-body"></tbody>
-                </table>
-                <hr>
-                <div class="d-flex justify-content-end align-items-center"><h4 class="me-4">TOTAL:</h4><h4 id="total-os">R$ 0,00</h4></div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
+                        <tbody id="servicos-selecionados-body"></tbody>
+                    </table>
+                </div>
+                <hr class="my-4 opacity-10">
+                <div class="d-flex justify-content-end align-items-center">
+                    <h4 class="me-4 text-muted fw-bold">TOTAL:</h4>
+                    <h2 id="total-os" class="text-primary fw-bold">R$ 0,00</h2>
+                </div>
             </div>
-            <div class="card-footer text-end">
-                <button type="reset" class="btn btn-secondary" id="limpar-form-btn">Limpar</button>
-                <button type="button" id="salvar-os-btn" class="btn btn-primary"><i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS</button>
+            <div class="mt-4 pt-3 text-end">
+                <button type="reset" class="btn btn-outline-secondary me-2 px-4" id="limpar-form-btn">Limpar</button>
+                <button type="button" id="salvar-os-btn" class="btn btn-primary btn-lg px-5"><i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS</button>
             </div>
         </form>
     </div>

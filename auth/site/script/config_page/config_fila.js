@@ -64,28 +64,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ tipo: 'fila_email', acao: 'reenviar', id: id })
                 });
                 const res = await response.json();
-                alert(res.message);
+                showToast(res.message, res.success ? 'success' : 'error');
                 carregarFilaEmail();
             } catch (error) {
-                alert('Erro ao reenviar e-mail.');
+                showAlert('Erro ao reenviar e-mail.', 'error', 'Falha');
                 button.disabled = false;
             }
         }
 
         if (button.classList.contains('btn-excluir')) {
-            if (!confirm('Deseja excluir este item da fila?')) return;
-            try {
-                const response = await fetch(`../${API_BASE_URL}/configuracoes_api.php?tipo=fila_email`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tipo: 'fila_email', id: id })
-                });
-                const res = await response.json();
-                alert(res.message);
-                carregarFilaEmail();
-            } catch (error) {
-                alert('Erro ao excluir item.');
-            }
+            showConfirm('Deseja excluir este item da fila?', async () => {
+                try {
+                    const response = await fetch(`../${API_BASE_URL}/configuracoes_api.php?tipo=fila_email`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tipo: 'fila_email', id: id })
+                    });
+                    const res = await response.json();
+                    showToast(res.message, res.success ? 'success' : 'error');
+                    carregarFilaEmail();
+                } catch (error) {
+                    showAlert('Erro ao excluir item.', 'error', 'Erro');
+                }
+            }, 'Excluir da Fila');
         }
     });
 

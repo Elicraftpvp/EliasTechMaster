@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
             usuarioModal.show();
         } catch (error) {
             console.error('Erro ao buscar dados do usuário para edição:', error);
-            alert('Não foi possível carregar os dados do usuário.');
+            showAlert('Não foi possível carregar os dados do usuário.', 'error', 'Erro');
         }
     };
 
@@ -108,17 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(result.message || 'Erro ao salvar usuário.');
             }
             
-            alert(result.message);
+            showToast(result.message, 'success');
             usuarioModal.hide();
             carregarUsuarios();
         } catch (error) {
             console.error('Falha ao salvar usuário:', error);
-            alert(`Ocorreu um erro ao salvar: ${error.message}`);
+            showAlert(`Ocorreu um erro ao salvar: ${error.message}`, 'error', 'Erro');
         }
     };
 
     const excluirUsuario = async (id) => {
-        if (confirm('Deseja realmente excluir este usuário?')) {
+        showConfirm('Deseja realmente excluir este usuário?', async () => {
             try {
                 const response = await fetch(`../${API_BASE_URL}/configuracoes_api.php`, {
                     method: 'POST',
@@ -127,13 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const result = await response.json();
                 if (!response.ok || !result.success) throw new Error(result.message);
-                alert(result.message);
+                showToast(result.message, 'success');
                 carregarUsuarios();
             } catch (error) {
                 console.error('Erro ao excluir usuário:', error);
-                alert('Não foi possível excluir o usuário.');
+                showAlert('Não foi possível excluir o usuário.', 'error', 'Erro');
             }
-        }
+        }, 'Excluir Usuário');
     };
 
     // --- EVENT LISTENERS ---

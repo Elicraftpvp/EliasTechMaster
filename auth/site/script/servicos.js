@@ -43,8 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${formatarTipo(s.tipo)}</td>
                         <td>${formatarValor(s.valor, s.tipo)}</td>
                         <td>
-                            <button class="btn btn-sm btn-warning btn-edit" data-id="${s.id}" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${s.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-warning btn-edit" data-id="${s.id}" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-delete" data-id="${s.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </div>
                         </td>
                     </tr>`;
                 tableBody.innerHTML += row;
@@ -73,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (!data.nome || !data.valor) {
-            alert('Nome e Valor são obrigatórios.');
+            showAlert('Nome e Valor são obrigatórios.', 'warning', 'Atenção');
             return;
         }
         
@@ -89,10 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Erro ao salvar o serviço.');
             
             modal.hide();
+            showToast('Serviço/Desconto salvo com sucesso!', 'success');
             await carregarServicos();
         } catch (error) {
             console.error(error);
-            alert('Não foi possível salvar o serviço.');
+            showAlert('Não foi possível salvar o serviço. Verifique os dados.', 'error', 'Erro');
         }
     });
 
@@ -117,21 +120,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 modal.show();
             } catch (error) {
                 console.error(error);
-                alert('Não foi possível carregar os dados para edição.');
+                showAlert('Não foi possível carregar os dados para edição.', 'error', 'Erro');
             }
         }
 
         if (target.classList.contains('btn-delete')) {
-            if (confirm('Deseja realmente excluir este serviço?')) {
+            showConfirm('Deseja realmente excluir este serviço?', async () => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/servicos_api.php?id=${id}`, { method: 'DELETE' });
                     if (!response.ok) throw new Error('Erro ao excluir.');
+                    showToast('Serviço excluído!', 'success');
                     await carregarServicos();
                 } catch(error) {
                     console.error(error);
-                    alert('Não foi possível excluir o serviço.');
+                    showAlert('Não foi possível excluir o serviço.', 'error', 'Erro');
                 }
-            }
+            }, 'Confirmar Exclusão');
         }
     });
 

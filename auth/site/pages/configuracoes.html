@@ -16,33 +16,33 @@
         }
     </style>
 </head>
-<body>
+<body class="fade-in">
 
 <!-- Conteúdo Principal -->
 <div class="main-content p-3">
     <div class="container-fluid">
-        <h2 class="mb-4"><i class="fas fa-cog"></i> Configurações do Sistema</h2>
+        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-cog"></i> Configurações do Sistema</h2>
 
-        <div class="card shadow-sm">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="config-tabs" role="tablist">
+        <div class="glass-card shadow-sm overflow-hidden">
+            <div class="card-header bg-white border-0 pb-0 pt-3">
+                <ul class="nav nav-tabs card-header-tabs border-0" id="config-tabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="email-config-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_email.html" type="button" role="tab">Configurações de E-mail</button>
+                        <button class="nav-link active fw-bold border-0" id="email-config-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_email.html" type="button" role="tab">E-mail</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="pix-config-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_pix.html" type="button" role="tab">Configuração PIX</button>
+                        <button class="nav-link fw-bold border-0" id="pix-config-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_pix.html" type="button" role="tab">PIX</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="email-queue-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_fila.html" type="button" role="tab">Fila de E-mails</button>
+                        <button class="nav-link fw-bold border-0" id="email-queue-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_fila.html" type="button" role="tab">Fila de Envios</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="usuarios-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_users.html" type="button" role="tab">Usuários</button>
+                        <button class="nav-link fw-bold border-0" id="usuarios-tab" data-bs-toggle="tab" data-iframe-src="config_page/config_users.html" type="button" role="tab">Usuários</button>
                     </li>
                 </ul>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <!-- O Iframe carregará o conteúdo das abas -->
-                <iframe id="config-iframe" src="config_page/config_email.html" onload="this.style.height = this.contentWindow.document.body.scrollHeight + 'px';"></iframe>
+                <iframe id="config-iframe" src="config_page/config_email.html" onload="this.style.height = (this.contentWindow.document.body.scrollHeight + 50) + 'px';"></iframe>
             </div>
         </div>
     </div>

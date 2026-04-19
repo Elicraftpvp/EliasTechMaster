@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!servico) return;
         
         if (editServicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
-            alert('Este item já foi adicionado.');
+            showToast('Este item já foi adicionado.', 'error');
             return;
         }
 
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tipo = document.getElementById('avulso-tipo-edit').value;
 
         if (!nome || valor < 0) {
-            alert('Por favor, preencha o nome e um valor válido.');
+            showAlert('Por favor, preencha o nome e um valor válido.', 'error', 'Dados Inválidos');
             return;
         }
 
@@ -218,17 +218,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const row = `
                     <tr data-os-id="${os.id}">
                         <td>${String(os.id).padStart(4, '0')}</td>
-                        <td>${os.cliente_nome}</td>
-                        <td>${os.equipamento}</td>
+                        <td class="expandable-cell">${os.cliente_nome}</td>
+                        <td class="expandable-cell">${os.equipamento}</td>
+                        <td>${statusButtonHtml}</td>
+                        <td class="text-nowrap">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-info btn-visualizar" title="Visualizar/Baixar PDF"><i class="fas fa-file-pdf"></i></button>
+                                <button class="btn btn-warning btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-delete" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </td>
                         <td>${dataEntrada}</td>
                         <td>${dataSaida}</td>
-                        <td>${statusButtonHtml}</td>
                         <td>${valorTotal}</td>
-                        <td class="text-nowrap">
-                            <button class="btn btn-sm btn-info btn-visualizar" title="Visualizar/Baixar PDF"><i class="fas fa-file-pdf"></i></button>
-                            <button class="btn btn-sm btn-warning btn-edit" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-danger btn-delete" title="Excluir"><i class="fas fa-trash"></i></button>
-                        </td>
                     </tr>`;
                 tableBody.innerHTML += row;
             });
@@ -259,11 +261,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const result = await response.json();
                 if (result.success) {
                     window.open(`../php/pdfs/${result.fileName}`, '_blank');
+                    showToast('PDF gerado com sucesso!', 'success');
                 } else {
-                    alert('Erro ao gerar o PDF: ' + result.error);
+                    showAlert('Erro ao gerar o PDF: ' + result.error, 'error', 'Erro');
                 }
             } catch (error) {
-                alert('Ocorreu um erro de comunicação ao tentar gerar o PDF.');
+                showAlert('Ocorreu um erro de comunicação ao tentar gerar o PDF.', 'error', 'Falha');
             } finally {
                 button.disabled = false;
                 button.innerHTML = '<i class="fas fa-file-pdf"></i>';
@@ -318,22 +321,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateEditTotals();
                 editModal.show();
             } catch (error) {
-                alert('Erro ao carregar dados da OS: ' + error.message);
+                showAlert('Erro ao carregar dados da OS: ' + error.message, 'error', 'Erro de Carregamento');
             }
         }
 
         // Deletar OS
         if (button.classList.contains('btn-delete')) {
-            if (confirm(`Deseja realmente excluir a Ordem de Serviço Nº ${String(osId).padStart(4, '0')}?`)) {
+            showConfirm(`Deseja realmente excluir a Ordem de Serviço Nº ${String(osId).padStart(4, '0')}?`, async () => {
                  try {
                     const response = await fetch(`${API_BASE_URL}/os_api.php?id=${osId}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (!result.success) throw new Error(result.error || 'Erro desconhecido');
+                    showToast('Ordem de Serviço excluída com sucesso!', 'success');
                     await carregarOrdens();
                 } catch (error) {
-                    alert('Erro ao excluir a OS: ' + error.message);
+                    showAlert('Erro ao excluir a OS: ' + error.message, 'error', 'Erro');
                 }
-            }
+            }, 'Excluir OS');
         }
     });
 
@@ -377,9 +381,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!result.success) throw new Error(result.error || 'Erro ao atualizar.');
             
             statusModal.hide();
+            showToast('Status atualizado com sucesso!', 'success');
             await carregarOrdens();
         } catch (error) {
-            alert('Erro ao atualizar status da OS: ' + error.message);
+            showAlert('Erro ao atualizar status da OS: ' + error.message, 'error', 'Erro');
         } finally {
             btnSalvarStatus.disabled = false;
             btnSalvarStatus.innerHTML = `Salvar`;
@@ -406,7 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (!osData.equipamento || osData.servicos.length === 0) {
-            alert('O equipamento e pelo menos um serviço/desconto são obrigatórios.');
+            showAlert('O equipamento e pelo menos um serviço/desconto são obrigatórios.', 'warning', 'Atenção');
             return;
         }
 
@@ -422,9 +427,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await response.json();
             if (!result.success) throw new Error(result.error || 'Erro ao salvar.');
             editModal.hide();
+            showToast('Alterações salvas com sucesso!', 'success');
             await carregarOrdens();
         } catch (error) {
-            alert('Erro: ' + error.message);
+            showAlert('Erro: ' + error.message, 'error', 'Erro');
         } finally {
             btnSalvarAlteracoes.disabled = false;
             btnSalvarAlteracoes.innerHTML = `Salvar Alterações`;

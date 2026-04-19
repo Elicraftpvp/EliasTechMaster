@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Evita adicionar o mesmo item duas vezes
         if (servicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
-            alert('Este item já foi adicionado.');
+            showToast('Este item já foi adicionado.', 'error');
             return;
         }
 
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo = document.getElementById('avulso-tipo').value;
 
         if (!nome || valor < 0) {
-            alert('Por favor, preencha o nome e um valor válido.');
+            showAlert('Por favor, preencha o nome e um valor válido.', 'error', 'Campo Obrigatório');
             return;
         }
 
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         if (!osData.clienteNome || !osData.equipamento || osData.servicos.length === 0) {
-            alert('Cliente, Equipamento e pelo menos um Serviço/Desconto são obrigatórios.');
+            showAlert('Cliente, Equipamento e pelo menos um Serviço/Desconto são obrigatórios.', 'warning', 'Dados Incompletos');
             return;
         }
         
@@ -264,13 +264,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const pdfResult = await pdfResponse.json();
             if (pdfResult.success) {
                 window.open(`../php/pdfs/${pdfResult.fileName}`, '_blank');
+                showToast('Ordem de Serviço salva com sucesso!', 'success');
                 limparBtn.click();
             } else {
-                alert(`OS salva (Nº ${result.os_id}), mas houve um erro ao gerar o PDF: ${pdfResult.error}`);
+                showAlert(`OS salva (Nº ${result.os_id}), mas houve um erro ao gerar o PDF: ${pdfResult.error}`, 'error', 'Erro no PDF');
             }
 
         } catch (error) {
-            alert('Erro ao salvar OS: ' + error.message);
+            showAlert('Erro ao salvar OS: ' + error.message, 'error', 'Falha no Servidor');
         } finally {
             salvarBtn.disabled = false;
             salvarBtn.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS';

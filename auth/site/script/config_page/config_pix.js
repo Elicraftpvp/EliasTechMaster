@@ -41,12 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (result.success) {
-                alert('Configurações de PIX salvas com sucesso!');
+                showToast('Configurações de PIX salvas!', 'success');
             } else {
-                alert('Erro ao salvar: ' + result.message);
+                showAlert('Erro ao salvar: ' + result.message, 'error', 'Erro');
             }
         } catch (error) {
-            alert('Erro de comunicação com o servidor.');
+            showAlert('Erro de comunicação com o servidor.', 'error', 'Falha');
         } finally {
             btnSalvar.disabled = false;
             btnSalvar.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Configurações';

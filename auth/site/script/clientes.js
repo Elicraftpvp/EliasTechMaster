@@ -33,8 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${c.telefone || ''}</td>
                         <td>${c.email || ''}</td>
                         <td>
-                            <button class="btn btn-sm btn-warning btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-sm btn-danger btn-delete" data-id="${c.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-warning btn-edit" data-id="${c.id}" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-danger btn-delete" data-id="${c.id}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </div>
                         </td>
                     </tr>`;
                 tableBody.innerHTML += row;
@@ -67,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.show();
         } catch (error) {
             console.error('Erro ao buscar dados do cliente para edição:', error);
-            alert('Não foi possível carregar os dados do cliente.');
+            showAlert('Não foi possível carregar os dados do cliente.', 'error', 'Erro');
         }
     };
 
@@ -104,10 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Erro ao salvar cliente.');
 
             modal.hide();
+            showToast('Cliente salvo com sucesso!', 'success');
             carregarClientes();
         } catch (error) {
             console.error('Falha ao salvar cliente:', error);
-            alert('Ocorreu um erro ao salvar. Verifique o console.');
+            showAlert('Ocorreu um erro ao salvar o cliente. Verifique sua conexão.', 'error', 'Falha no Servidor');
         }
     });
 
@@ -119,15 +122,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = target.dataset.id;
 
         if (target.classList.contains('btn-delete')) {
-            if (confirm('Deseja realmente excluir este cliente?')) {
+            showConfirm('Deseja realmente excluir este cliente?', async () => {
                 try {
                     await fetch(`${API_BASE_URL}/clientes_api.php?id=${id}`, { method: 'DELETE' });
+                    showToast('Cliente excluído com sucesso!', 'success');
                     carregarClientes();
                 } catch (error) {
                     console.error('Erro ao excluir cliente:', error);
-                    alert('Não foi possível excluir o cliente.');
+                    showAlert('Não foi possível excluir o cliente.', 'error', 'Erro');
                 }
-            }
+            }, 'Excluir Cliente');
         } else if (target.classList.contains('btn-edit')) {
             // NOVO: Chama a função para preparar a edição
             prepararEdicao(id);

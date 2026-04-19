@@ -8,26 +8,27 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="../style/css.css">
 </head>
-<body id="page-gerenciar-os" class="iframe-page">
+<body id="page-gerenciar-os" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4"><i class="fas fa-list-alt"></i> Gerenciar Ordens de Serviço</h2>
-        <div class="card shadow-sm">
-             <div class="card-header bg-light">
+        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-list-alt"></i> Gerenciar Ordens de Serviço</h2>
+        <div class="glass-card overflow-hidden">
+             <div class="card-header bg-white py-3 border-0">
                 <!-- Filtros podem ser implementados no futuro -->
+                <h6 class="m-0 fw-bold text-muted">Lista de Registros</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover">
+                    <table class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>OS Nº</th>
-                                <th>Cliente</th>
-                                <th>Equipamento</th>
+                                <th class="expandable-cell">Cliente</th>
+                                <th class="expandable-cell">Equipamento</th>
+                                <th>Status</th>
+                                <th>Ações</th>
                                 <th>Data Entrada</th>
                                 <th>Data Saída</th>
-                                <th>Status</th>
                                 <th>Total</th>
-                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="os-table-body">
@@ -42,39 +43,39 @@
     <!-- Modal de Edição de OS -->
     <div class="modal fade" id="editOsModal" tabindex="-1" aria-labelledby="editOsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editOsModalLabel">Editar Ordem de Serviço Nº <span id="os-id-modal"></span></h5>
+            <div class="modal-content glass-card">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="editOsModalLabel">Editar Ordem de Serviço <span class="text-primary">#<span id="os-id-modal"></span></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="edit-os-form" onsubmit="return false;">
                         <input type="hidden" id="edit_os_id">
-                        <h5>1. Dados do Cliente (Não editável)</h5>
-                        <div class="row">
+                        <h6 class="text-muted fw-bold mb-3">1. DADOS DO CLIENTE</h6>
+                        <div class="row bg-light p-3 rounded-4 mb-4 mx-0">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Nome</label>
-                                <input type="text" class="form-control" id="edit_cliente_nome" readonly>
+                                <label class="form-label fw-medium">Nome</label>
+                                <input type="text" class="form-control-plaintext fw-bold" id="edit_cliente_nome" readonly>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label">Telefone</label>
-                                <input type="text" class="form-control" id="edit_cliente_telefone" readonly>
+                                <label class="form-label fw-medium">Telefone</label>
+                                <input type="text" class="form-control-plaintext fw-bold" id="edit_cliente_telefone" readonly>
                             </div>
                             <div class="col-md-3 mb-3">
-                                <label class="form-label">E-mail</label>
-                                <input type="email" class="form-control" id="edit_cliente_email" readonly>
+                                <label class="form-label fw-medium">E-mail</label>
+                                <input type="email" class="form-control-plaintext fw-bold" id="edit_cliente_email" readonly>
                             </div>
                         </div>
 
-                        <h5>2. Informações do Equipamento e Status</h5>
+                        <h6 class="text-muted fw-bold mb-3">2. EQUIPAMENTO E STATUS</h6>
                         <div class="row">
                             <div class="col-md-8">
-                                <div class="mb-3"><label class="form-label">Equipamento / Produto</label><input type="text" class="form-control" id="edit_equipamento" required></div>
+                                <div class="mb-3"><label class="form-label fw-medium">Equipamento / Produto</label><input type="text" class="form-control" id="edit_equipamento" required></div>
                             </div>
                             <div class="col-md-4">
                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" id="edit_status">
+                                    <label class="form-label fw-medium">Status da OS</label>
+                                    <select class="form-select fw-bold" id="edit_status">
                                         <option>Aberta</option>
                                         <option>Em Andamento</option>
                                         <option>Aguardando Peças</option>
@@ -84,28 +85,35 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3"><label class="form-label">Problema Informado</label><textarea class="form-control" id="edit_problema" rows="2"></textarea></div>
-                        <div class="mb-3"><label class="form-label">Laudo Técnico</label><textarea class="form-control" id="edit_laudo" rows="2"></textarea></div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3"><label class="form-label fw-medium">Problema Informado</label><textarea class="form-control" id="edit_problema" rows="2"></textarea></div>
+                            <div class="col-md-6 mb-3"><label class="form-label fw-medium">Laudo Técnico</label><textarea class="form-control" id="edit_laudo" rows="2"></textarea></div>
+                        </div>
 
-                        <h5>3. Serviços Realizados</h5>
-                        <div class="input-group mb-3">
-                            <select class="form-select" id="edit-servicos-select"></select>
-                            <button class="btn btn-outline-primary" type="button" id="edit-add-servico-btn">Adicionar</button>
-                            <button class="btn btn-outline-secondary" type="button" id="edit-open-avulso-modal-btn">
+                        <h6 class="text-muted fw-bold mb-3 mt-3">3. SERVIÇOS E PEÇAS</h6>
+                        <div class="input-group mb-3 shadow-sm rounded-3 overflow-hidden">
+                            <select class="form-select border-0" id="edit-servicos-select"></select>
+                            <button class="btn btn-primary" type="button" id="edit-add-servico-btn">Adicionar</button>
+                            <button class="btn btn-outline-primary bg-white" type="button" id="edit-open-avulso-modal-btn">
                                 <i class="fas fa-plus"></i> Item Avulso
                             </button>
                         </div>
-                        <table class="table">
-                            <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
-                            <tbody id="edit-servicos-selecionados-body"></tbody>
-                        </table>
-                        <hr>
-                        <div class="d-flex justify-content-end align-items-center"><h4 class="me-4">TOTAL:</h4><h4 id="edit-total-os">R$ 0,00</h4></div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
+                                <tbody id="edit-servicos-selecionados-body"></tbody>
+                            </table>
+                        </div>
+                        <hr class="my-4 opacity-10">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <h4 class="me-4 text-muted fw-bold">TOTAL ATUALIZADO:</h4>
+                            <h2 id="edit-total-os" class="text-primary fw-bold">R$ 0,00</h2>
+                        </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="salvar-edit-os-btn" class="btn btn-primary">Salvar Alterações</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="salvar-edit-os-btn" class="btn btn-primary px-5">Salvar Alterações</button>
                 </div>
             </div>
         </div>
@@ -114,15 +122,15 @@
     <!-- NOVO: Modal de Mudança de Status -->
     <div class="modal fade" id="statusChangeModal" tabindex="-1" aria-labelledby="statusChangeModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="statusChangeModalLabel">Alterar Status da OS</h5>
+            <div class="modal-content glass-card p-2">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="statusChangeModalLabel">Alterar Status da OS</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Selecione o novo status para a Ordem de Serviço Nº <strong id="status-modal-os-id"></strong>.</p>
+                    <p class="text-muted">Selecione o novo status para a OS <strong class="text-primary">#<span id="status-modal-os-id"></span></strong>.</p>
                     <input type="hidden" id="status_os_id_input">
-                    <select class="form-select" id="status_select_modal">
+                    <select class="form-select form-select-lg fw-bold" id="status_select_modal">
                         <option value="Aberta">Aberta</option>
                         <option value="Em Andamento">Em Andamento</option>
                         <option value="Aguardando Peças">Aguardando Peças</option>
@@ -130,9 +138,9 @@
                         <option value="Cancelada">Cancelada</option>
                     </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="salvar-status-btn" class="btn btn-primary">Salvar</button>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="salvar-status-btn" class="btn btn-primary px-4">Salvar Alteração</button>
                 </div>
             </div>
         </div>
