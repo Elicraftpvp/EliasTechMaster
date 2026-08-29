@@ -32,6 +32,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         countOsFinalizadas.textContent = dashboardData.os_finalizadas;
         countClientes.textContent = dashboardData.total_clientes;
 
+        // --- 1.1. Atualiza os painéis financeiros de Caixa ---
+        const formatBRL = (valor) => valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const animateValue = (element, targetValue, duration = 1200) => {
+            const startTime = performance.now();
+            const startValue = 0;
+            const update = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // easeOutExpo
+                const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                const currentValue = startValue + (targetValue - startValue) * eased;
+                element.textContent = formatBRL(currentValue);
+                if (progress < 1) requestAnimationFrame(update);
+            };
+            requestAnimationFrame(update);
+        };
+
+        if (dashboardData.financeiro) {
+            const fin = dashboardData.financeiro;
+            animateValue(document.getElementById('val-caixa-mes'), fin.total_mes);
+            animateValue(document.getElementById('val-caixa-ano'), fin.total_ano, 1500);
+            animateValue(document.getElementById('val-caixa-total'), fin.total_geral, 1800);
+        }
+
         // --- 2. Popula a lista de OS Abertas ---
         const osAbertas = ordensDeServico.filter(os => ['Aberta', 'Em Andamento', 'Aguardando Peças'].includes(os.status));
         listaOsAbertas.innerHTML = ''; // Limpa o spinner

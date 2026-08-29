@@ -15,7 +15,7 @@
         <div class="row">
             <!-- Coluna de Navegação/Botões Empilhados -->
             <div class="col-lg-4 col-md-5">
-                <div class="glass-card overflow-hidden shadow-sm">
+                <div class="glass-card overflow-hidden shadow-sm mb-4">
                     <div class="list-group list-group-flush">
                         <a href="#" id="btn-nav-os-abertas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
                             <div>
@@ -45,6 +45,68 @@
                             </div>
                             <span id="count-clientes" class="badge bg-info rounded-pill">0</span>
                         </a>
+                    </div>
+                </div>
+
+                <!-- Painel Liquid Glass: Valores Obtidos de Caixa -->
+                <div class="liquid-glass-card shadow-sm p-3">
+                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-light-subtle">
+                        <div class="d-flex align-items-center">
+                            <div class="liquid-header-icon me-2">
+                                <i class="fas fa-sack-dollar"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold text-dark">Valores Obtidos de Caixa</h6>
+                                <small class="text-muted" style="font-size: 11px;">Receitas de Ordens Concluídas</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                            <i class="fas fa-chart-line me-1"></i>Faturamento
+                        </span>
+                    </div>
+
+                    <div class="d-flex flex-column gap-3">
+                        <!-- 1. Este Mês -->
+                        <div class="liquid-panel liquid-panel-mes">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="liquid-label">Arrecadado este Mês</span>
+                                    <h4 class="liquid-value text-emerald mb-0" id="val-caixa-mes">R$ 0,00</h4>
+                                </div>
+                                <div class="liquid-icon-badge badge-emerald">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                            </div>
+                            <div class="liquid-glow-line glow-emerald"></div>
+                        </div>
+
+                        <!-- 2. Este Ano -->
+                        <div class="liquid-panel liquid-panel-ano">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="liquid-label">Arrecadado este Ano</span>
+                                    <h4 class="liquid-value text-cyan mb-0" id="val-caixa-ano">R$ 0,00</h4>
+                                </div>
+                                <div class="liquid-icon-badge badge-cyan">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                            </div>
+                            <div class="liquid-glow-line glow-cyan"></div>
+                        </div>
+
+                        <!-- 3. Total Geral -->
+                        <div class="liquid-panel liquid-panel-total">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="liquid-label">Total Geral Arrecadado</span>
+                                    <h4 class="liquid-value text-indigo mb-0" id="val-caixa-total">R$ 0,00</h4>
+                                </div>
+                                <div class="liquid-icon-badge badge-indigo">
+                                    <i class="fas fa-vault"></i>
+                                </div>
+                            </div>
+                            <div class="liquid-glow-line glow-indigo"></div>
+                        </div>
                     </div>
                 </div>
             </div>
