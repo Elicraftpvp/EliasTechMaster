@@ -4,35 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Clientes</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../style/css.css">
 </head>
 <body id="page-clientes" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-primary"><i class="fas fa-users me-2"></i>Gerenciar Clientes</h2>
-            <button class="btn btn-primary px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#clienteModal">
-                <i class="fas fa-plus me-2"></i> Novo Cliente
-            </button>
+        
+        <!-- HERO / HEADER -->
+        <div class="dashboard-hero-card mb-4 p-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon-wrapper" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.15));">
+                        <i class="fas fa-users text-indigo"></i>
+                    </div>
+                    <div>
+                        <h2 class="hero-title mb-1">Base de Clientes</h2>
+                        <p class="hero-subtitle mb-0">Cadastro centralizado, histórico de contatos e informações cadastrais</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#clienteModal" id="btn-novo-cliente-modal">
+                        <i class="fas fa-user-plus me-2"></i> Novo Cliente
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="glass-card overflow-hidden">
+        <!-- TABELA DE CLIENTES -->
+        <div class="glass-card shadow-sm overflow-hidden mb-5">
+            <div class="card-header bg-white py-3 px-4 border-0">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-address-book text-primary me-2 fs-5"></i>
+                        <h6 class="m-0 fw-bold text-dark">Clientes Cadastrados</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group" style="max-width: 280px;">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0 fs-7" id="search-cliente-input" placeholder="Buscar cliente por nome, telefone...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th class="ps-4">ID</th>
-                                <th>Nome</th>
-                                <th>CPF/CNPJ</th>
+                                <th class="ps-4" style="width: 80px;">ID</th>
+                                <th>Cliente</th>
+                                <th>CPF / CNPJ</th>
                                 <th>Telefone</th>
-                                <th>Email</th>
-                                <th class="pe-4">Ações</th>
+                                <th>E-mail</th>
+                                <th class="pe-4 text-center" style="width: 120px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="clientes-table-body">
-                            <!-- Conteúdo dinâmico aqui -->
+                            <!-- Conteúdo dinâmico preenchido via JS -->
                         </tbody>
                     </table>
                 </div>
@@ -43,50 +76,53 @@
     <!-- Modal Cliente -->
     <div class="modal fade" id="clienteModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content glass-card">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold" id="clienteModalLabel">Dados do Cliente</h5>
+            <div class="modal-content glass-card shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="clienteModalLabel">
+                        <i class="fas fa-user-gear text-primary me-2"></i>Dados do Cliente
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="form-cliente">
                         <div class="row">
                             <div class="col-md-8 mb-3">
-                                <label class="form-label fw-medium">Nome / Razão Social</label>
-                                <input type="text" class="form-control" id="cliente_nome" placeholder="Digite o nome completo..." required>
+                                <label class="form-label fw-semibold">Nome Completo / Razão Social <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="cliente_nome" placeholder="Digite o nome..." required>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-medium">CPF/CNPJ</label>
+                                <label class="form-label fw-semibold">CPF ou CNPJ</label>
                                 <input type="text" class="form-control" id="cliente_cpf_cnpj" placeholder="000.000.000-00">
                             </div>
                         </div>
                         <div class="row">
                              <div class="col-md-6 mb-3">
-                                <label class="form-label fw-medium">Telefone</label>
-                                <input type="tel" class="form-control" id="cliente_telefone" placeholder="(00) 00000-0000">
+                                <label class="form-label fw-semibold">Telefone / WhatsApp</label>
+                                <input type="tel" class="form-control" id="cliente_telefone" placeholder="(48) 99999-9999">
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-medium">E-mail</label>
-                                <input type="email" class="form-control" id="cliente_email" placeholder="exemplo@email.com">
+                                <label class="form-label fw-semibold">E-mail</label>
+                                <input type="email" class="form-control" id="cliente_email" placeholder="cliente@email.com">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-medium">Endereço Completo</label>
+                            <label class="form-label fw-semibold">Endereço Completo</label>
                             <input type="text" class="form-control" id="cliente_endereco" placeholder="Rua, número, bairro, cidade...">
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer border-0">
+                <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Fechar</button>
-                    <button type="button" id="salvar-cliente-btn" class="btn btn-primary px-5">Salvar Cliente</button>
+                    <button type="button" id="salvar-cliente-btn" class="btn btn-primary px-4">
+                        <i class="fas fa-save me-1"></i> Salvar Cliente
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-        <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
-    <!-- Bootstrap JS (necessário para componentes interativos como Modals) -->
+
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Nosso script principal que contém toda a lógica -->
     <script src="../script/common.js"></script>
     <script src="../script/clientes.js"></script>
 </body>

@@ -4,35 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Ordens de Serviço</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../style/css.css">
 </head>
 <body id="page-gerenciar-os" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-list-alt"></i> Gerenciar Ordens de Serviço</h2>
-        <div class="glass-card overflow-hidden">
-             <div class="card-header bg-white py-3 border-0">
-                <!-- Filtros podem ser implementados no futuro -->
-                <h6 class="m-0 fw-bold text-muted">Lista de Registros</h6>
+        
+        <!-- HERO / HEADER -->
+        <div class="dashboard-hero-card mb-4 p-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon-wrapper" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(2, 132, 199, 0.15));">
+                        <i class="fas fa-list-check text-info"></i>
+                    </div>
+                    <div>
+                        <h2 class="hero-title mb-1">Gerenciar Ordens de Serviço</h2>
+                        <p class="hero-subtitle mb-0">Consulte, edite, altere status e gere relatórios e PDFs das OS</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="abrir_os.html" class="btn btn-primary px-3 py-2 shadow-sm">
+                        <i class="fas fa-plus-circle me-1"></i> Nova OS
+                    </a>
+                </div>
             </div>
+        </div>
+
+        <!-- CARD PRINCIPAL COM TABELA E FILTROS -->
+        <div class="glass-card shadow-sm overflow-hidden mb-5">
+            <div class="card-header bg-white py-3 px-4 border-0">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-table-list text-primary me-2 fs-5"></i>
+                        <h6 class="m-0 fw-bold text-dark">Lista de Ordens Registradas</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="input-group" style="max-width: 280px;">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0 fs-7" id="search-os-input" placeholder="Buscar por cliente, OS ou equipamento...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th>OS Nº</th>
-                                <th class="expandable-cell">Cliente</th>
-                                <th class="expandable-cell">Equipamento</th>
+                                <th class="ps-4">OS Nº</th>
+                                <th>Cliente</th>
+                                <th>Equipamento</th>
                                 <th>Status</th>
-                                <th>Ações</th>
+                                <th class="text-center">Ações</th>
                                 <th>Data Entrada</th>
                                 <th>Data Saída</th>
-                                <th>Total</th>
+                                <th class="pe-4 text-end">Total</th>
                             </tr>
                         </thead>
                         <tbody id="os-table-body">
-                            <!-- Conteúdo dinâmico aqui -->
+                            <!-- Conteúdo dinâmico preenchido via JS -->
                         </tbody>
                     </table>
                 </div>
@@ -43,38 +78,44 @@
     <!-- Modal de Edição de OS -->
     <div class="modal fade" id="editOsModal" tabindex="-1" aria-labelledby="editOsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
-            <div class="modal-content glass-card">
+            <div class="modal-content glass-card shadow-lg">
                 <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold" id="editOsModalLabel">Editar Ordem de Serviço <span class="text-primary">#<span id="os-id-modal"></span></span></h5>
+                    <h5 class="modal-title fw-bold text-dark" id="editOsModalLabel">
+                        <i class="fas fa-pen-to-square text-primary me-2"></i>Editar Ordem de Serviço <span class="text-primary">#<span id="os-id-modal"></span></span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="edit-os-form" onsubmit="return false;">
                         <input type="hidden" id="edit_os_id">
-                        <h6 class="text-muted fw-bold mb-3">1. DADOS DO CLIENTE</h6>
+                        
+                        <h6 class="text-muted fw-bold mb-3"><i class="fas fa-user me-1"></i>1. DADOS DO CLIENTE</h6>
                         <div class="row bg-light p-3 rounded-4 mb-4 mx-0">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-medium">Nome</label>
-                                <input type="text" class="form-control-plaintext fw-bold" id="edit_cliente_nome" readonly>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label text-muted small fw-bold">Nome</label>
+                                <input type="text" class="form-control-plaintext fw-bold text-dark fs-6" id="edit_cliente_nome" readonly>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label fw-medium">Telefone</label>
-                                <input type="text" class="form-control-plaintext fw-bold" id="edit_cliente_telefone" readonly>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label text-muted small fw-bold">Telefone</label>
+                                <input type="text" class="form-control-plaintext fw-bold text-dark fs-6" id="edit_cliente_telefone" readonly>
                             </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label fw-medium">E-mail</label>
-                                <input type="email" class="form-control-plaintext fw-bold" id="edit_cliente_email" readonly>
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label text-muted small fw-bold">E-mail</label>
+                                <input type="email" class="form-control-plaintext fw-bold text-dark fs-6" id="edit_cliente_email" readonly>
                             </div>
                         </div>
 
-                        <h6 class="text-muted fw-bold mb-3">2. EQUIPAMENTO E STATUS</h6>
+                        <h6 class="text-muted fw-bold mb-3"><i class="fas fa-laptop me-1"></i>2. EQUIPAMENTO E STATUS</h6>
                         <div class="row">
                             <div class="col-md-8">
-                                <div class="mb-3"><label class="form-label fw-medium">Equipamento / Produto</label><input type="text" class="form-control" id="edit_equipamento" required></div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Equipamento / Produto</label>
+                                    <input type="text" class="form-control" id="edit_equipamento" required>
+                                </div>
                             </div>
                             <div class="col-md-4">
                                <div class="mb-3">
-                                    <label class="form-label fw-medium">Status da OS</label>
+                                    <label class="form-label fw-semibold">Status da OS</label>
                                     <select class="form-select fw-bold" id="edit_status">
                                         <option>Aberta</option>
                                         <option>Em Andamento</option>
@@ -86,51 +127,70 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6 mb-3"><label class="form-label fw-medium">Problema Informado</label><textarea class="form-control" id="edit_problema" rows="2"></textarea></div>
-                            <div class="col-md-6 mb-3"><label class="form-label fw-medium">Laudo Técnico</label><textarea class="form-control" id="edit_laudo" rows="2"></textarea></div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Problema Informado</label>
+                                <textarea class="form-control" id="edit_problema" rows="2"></textarea>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Laudo Técnico</label>
+                                <textarea class="form-control" id="edit_laudo" rows="2"></textarea>
+                            </div>
                         </div>
 
-                        <h6 class="text-muted fw-bold mb-3 mt-3">3. SERVIÇOS E PEÇAS</h6>
+                        <h6 class="text-muted fw-bold mb-3 mt-3"><i class="fas fa-receipt me-1"></i>3. SERVIÇOS E PEÇAS</h6>
                         <div class="input-group mb-3 shadow-sm rounded-3 overflow-hidden">
                             <select class="form-select border-0" id="edit-servicos-select"></select>
-                            <button class="btn btn-primary" type="button" id="edit-add-servico-btn">Adicionar</button>
-                            <button class="btn btn-outline-primary bg-white" type="button" id="edit-open-avulso-modal-btn">
-                                <i class="fas fa-plus"></i> Item Avulso
+                            <button class="btn btn-primary px-3" type="button" id="edit-add-servico-btn">Adicionar</button>
+                            <button class="btn btn-outline-secondary bg-white px-3" type="button" id="edit-open-avulso-modal-btn">
+                                <i class="fas fa-tag me-1"></i> Item Avulso
                             </button>
                         </div>
+
                         <div class="table-responsive">
-                            <table class="table">
-                                <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th style="width: 100px;">Qtd</th>
+                                        <th>Valor Unitário</th>
+                                        <th>Subtotal</th>
+                                        <th style="width: 60px;" class="text-center">Ação</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="edit-servicos-selecionados-body"></tbody>
                             </table>
                         </div>
+
                         <hr class="my-4 opacity-10">
+
                         <div class="d-flex justify-content-end align-items-center">
-                            <h4 class="me-4 text-muted fw-bold">TOTAL ATUALIZADO:</h4>
-                            <h2 id="edit-total-os" class="text-primary fw-bold">R$ 0,00</h2>
+                            <h5 class="me-3 text-muted fw-bold mb-0">TOTAL:</h5>
+                            <h2 id="edit-total-os" class="text-emerald fw-bold mb-0">R$ 0,00</h2>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="salvar-edit-os-btn" class="btn btn-primary px-5">Salvar Alterações</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary px-4" id="salvar-edit-os-btn">
+                        <i class="fas fa-save me-1"></i> Salvar Alterações
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- NOVO: Modal de Mudança de Status -->
-    <div class="modal fade" id="statusChangeModal" tabindex="-1" aria-labelledby="statusChangeModalLabel" aria-hidden="true">
+    <!-- Modal de Mudança Rápida de Status -->
+    <div class="modal fade" id="statusChangeModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content glass-card p-2">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold" id="statusChangeModalLabel">Alterar Status da OS</h5>
+            <div class="modal-content glass-card shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark">Alterar Status da OS #<span id="status-modal-os-id"></span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <p class="text-muted">Selecione o novo status para a OS <strong class="text-primary">#<span id="status-modal-os-id"></span></strong>.</p>
+                <div class="modal-body p-4">
                     <input type="hidden" id="status_os_id_input">
-                    <select class="form-select form-select-lg fw-bold" id="status_select_modal">
+                    <label class="form-label fw-semibold">Novo Status:</label>
+                    <select class="form-select form-select-lg fs-6" id="status_select_modal">
                         <option value="Aberta">Aberta</option>
                         <option value="Em Andamento">Em Andamento</option>
                         <option value="Aguardando Peças">Aguardando Peças</option>
@@ -138,36 +198,35 @@
                         <option value="Cancelada">Cancelada</option>
                     </select>
                 </div>
-                <div class="modal-footer border-0">
+                <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="salvar-status-btn" class="btn btn-primary px-4">Salvar Alteração</button>
+                    <button type="button" class="btn btn-primary px-4" id="salvar-status-btn">Atualizar Status</button>
                 </div>
             </div>
         </div>
     </div>
 
-
     <!-- Modal para Item Avulso (Edição) -->
-    <div class="modal fade" id="avulsoModalEdit" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="editAvulsoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Adicionar Item Avulso</h5>
+            <div class="modal-content glass-card shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark">Adicionar Item Avulso</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Nome do Serviço/Item</label>
-                        <input type="text" class="form-control" id="avulso-nome-edit" placeholder="Ex: Limpeza especial">
+                        <label class="form-label fw-semibold">Nome do Item</label>
+                        <input type="text" class="form-control" id="edit-avulso-nome" placeholder="Ex: Peça avulsa...">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Valor</label>
-                            <input type="number" step="0.01" class="form-control" id="avulso-valor-edit" placeholder="0.00">
+                            <label class="form-label fw-semibold">Valor</label>
+                            <input type="number" step="0.01" class="form-control" id="edit-avulso-valor" placeholder="0.00">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Tipo</label>
-                            <select class="form-select" id="avulso-tipo-edit">
+                            <label class="form-label fw-semibold">Tipo</label>
+                            <select class="form-select" id="edit-avulso-tipo">
                                 <option value="servico">Serviço</option>
                                 <option value="peca">Peça</option>
                                 <option value="desconto_fixo">Desconto Fixo (R$)</option>
@@ -176,15 +235,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="edit-add-avulso-btn">Adicionar à OS</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="edit-add-avulso-btn">Adicionar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../script/common.js"></script>
     <script src="../script/gerenciar_os.js"></script>

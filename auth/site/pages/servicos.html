@@ -4,34 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Serviços</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../style/css.css">
 </head>
 <body id="page-servicos" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold text-primary"><i class="fas fa-tools me-2"></i>Serviços e Descontos</h2>
-            <button class="btn btn-primary px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#servicoModal">
-                <i class="fas fa-plus me-2"></i> Novo Item
-            </button>
+        
+        <!-- HERO / HEADER -->
+        <div class="dashboard-hero-card mb-4 p-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon-wrapper" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.15));">
+                        <i class="fas fa-tools text-warning"></i>
+                    </div>
+                    <div>
+                        <h2 class="hero-title mb-1">Catálogo de Serviços & Descontos</h2>
+                        <p class="hero-subtitle mb-0">Tabela de preços, serviços padrão e regras de desconto aplicáveis às OS</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-primary px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#servicoModal" id="btn-novo-servico-modal">
+                        <i class="fas fa-plus me-2"></i> Novo Item
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div class="glass-card overflow-hidden">
+        <!-- TABELA DE SERVIÇOS -->
+        <div class="glass-card shadow-sm overflow-hidden mb-5">
+            <div class="card-header bg-white py-3 px-4 border-0">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-list-check text-primary me-2 fs-5"></i>
+                        <h6 class="m-0 fw-bold text-dark">Itens Cadastrados</h6>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group" style="max-width: 280px;">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control border-start-0 fs-7" id="search-servico-input" placeholder="Buscar por serviço ou tipo...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th class="ps-4">ID</th>
-                                <th>Nome</th>
-                                <th>Tipo</th>
-                                <th>Valor</th>
-                                <th class="pe-4">Ações</th>
+                                <th class="ps-4" style="width: 80px;">ID</th>
+                                <th>Descrição do Serviço / Item</th>
+                                <th>Tipo de Operação</th>
+                                <th>Valor Padrão</th>
+                                <th class="pe-4 text-center" style="width: 120px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="servicos-table-body">
-                            <!-- Conteúdo dinâmico via JS -->
+                            <!-- Conteúdo dinâmico preenchido via JS -->
                         </tbody>
                     </table>
                 </div>
@@ -42,48 +75,58 @@
     <!-- Modal Serviço -->
     <div class="modal fade" id="servicoModal" tabindex="-1" aria-labelledby="servicoModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content glass-card">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fw-bold" id="servicoModalLabel">Configurar Item</h5>
+            <div class="modal-content glass-card shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="servicoModalLabel">
+                        <i class="fas fa-tag text-primary me-2"></i>Configurar Item
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="form-servico" onsubmit="return false;">
                         <input type="hidden" id="servico_id">
+                        
                         <div class="mb-3">
-                            <label for="servico_nome" class="form-label fw-medium">Nome do Serviço/Desconto</label>
-                            <input type="text" class="form-control" id="servico_nome" placeholder="Ex: Formatação, Desconto de Boas-vindas..." required>
+                            <label for="servico_nome" class="form-label fw-semibold">Nome do Serviço / Desconto <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="servico_nome" placeholder="Ex: Formatação com Backup, Troca de Tela..." required>
                         </div>
+                        
                         <div class="mb-3">
-                            <label for="servico_tipo" class="form-label fw-medium">Tipo de Operação</label>
+                            <label for="servico_tipo" class="form-label fw-semibold">Tipo de Operação</label>
                             <select class="form-select fw-bold" id="servico_tipo" required>
                                 <option value="servico" selected>Serviço (Soma ao total)</option>
-                                <option value="desconto_percentual">Desconto (%) - Subtrai</option>
-                                <option value="desconto_fixo">Desconto Fixo (R$) - Subtrai</option>
+                                <option value="peca">Peça / Componente (Soma ao total)</option>
+                                <option value="desconto_fixo">Desconto Fixo (R$) - Deduz</option>
+                                <option value="desconto_percentual">Desconto (%) - Deduz</option>
                             </select>
                         </div>
-                         <div class="mb-3">
-                            <label for="servico_descricao" class="form-label fw-medium">Descrição Adicional</label>
-                            <textarea class="form-control" id="servico_descricao" rows="2" placeholder="Opcional..."></textarea>
-                        </div>
+                        
                         <div class="mb-3">
-                            <label for="servico_valor" class="form-label fw-medium">Valor</label>
+                            <label for="servico_descricao" class="form-label fw-semibold">Descrição / Observações</label>
+                            <textarea class="form-control" id="servico_descricao" rows="2" placeholder="Detalhes opcionais sobre o serviço..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="servico_valor" class="form-label fw-semibold">Valor Padrão <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="fas fa-tag text-muted"></i></span>
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-dollar-sign"></i></span>
                                 <input type="number" step="0.01" class="form-control border-start-0" id="servico_valor" required placeholder="0.00">
                             </div>
-                            <small id="valor-help" class="form-text text-muted">Nota: Para descontos %, insira apenas o número (ex: 10 para 10%).</small>
+                            <small id="valor-help" class="form-text text-muted">Para desconto percentual, digite apenas a porcentagem (Ex: 10 para 10%).</small>
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer border-0">
+                <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" id="salvar-servico-btn" class="btn btn-primary px-5">Salvar Configuração</button>
+                    <button type="button" id="salvar-servico-btn" class="btn btn-primary px-4">
+                        <i class="fas fa-save me-1"></i> Salvar Item
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../script/common.js"></script>
     <script src="../script/servicos.js"></script>

@@ -119,21 +119,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- ITEM AVULSO (EDIÇÃO) ---
-    const avulsoModalEdit = new bootstrap.Modal(document.getElementById('avulsoModalEdit'));
+    const avulsoModalEl = document.getElementById('editAvulsoModal');
+    const avulsoModalEdit = avulsoModalEl ? new bootstrap.Modal(avulsoModalEl) : null;
     const openAvulsoEditBtn = document.getElementById('edit-open-avulso-modal-btn');
     const addAvulsoEditBtn = document.getElementById('edit-add-avulso-btn');
 
-    openAvulsoEditBtn.addEventListener('click', () => {
-        document.getElementById('avulso-nome-edit').value = '';
-        document.getElementById('avulso-valor-edit').value = '';
-        document.getElementById('avulso-tipo-edit').value = 'servico';
-        avulsoModalEdit.show();
+    openAvulsoEditBtn?.addEventListener('click', () => {
+        const nomeInput = document.getElementById('edit-avulso-nome');
+        const valorInput = document.getElementById('edit-avulso-valor');
+        const tipoInput = document.getElementById('edit-avulso-tipo');
+        if (nomeInput) nomeInput.value = '';
+        if (valorInput) valorInput.value = '';
+        if (tipoInput) tipoInput.value = 'servico';
+        avulsoModalEdit?.show();
     });
 
-    addAvulsoEditBtn.addEventListener('click', () => {
-        const nome = document.getElementById('avulso-nome-edit').value.trim();
-        const valor = parseFloat(document.getElementById('avulso-valor-edit').value) || 0;
-        const tipo = document.getElementById('avulso-tipo-edit').value;
+    addAvulsoEditBtn?.addEventListener('click', () => {
+        const nome = (document.getElementById('edit-avulso-nome')?.value || '').trim();
+        const valor = parseFloat(document.getElementById('edit-avulso-valor')?.value) || 0;
+        const tipo = document.getElementById('edit-avulso-tipo')?.value || 'servico';
 
         if (!nome || valor < 0) {
             showAlert('Por favor, preencha o nome e um valor válido.', 'error', 'Dados Inválidos');
@@ -152,9 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             subtotalDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
+        const fakeId = 'avulso_' + Date.now();
         const row = `
-            <tr data-id="avulso" data-nome="${nome}" data-valor="${valor}" data-tipo="${tipo}">
-                <td><span class="badge bg-secondary me-1">Avulso</span> ${nome}</td>
+            <tr data-id="${fakeId}" data-nome="${nome}" data-valor="${valor}" data-tipo="${tipo}">
+                <td>${nome} <span class="badge bg-warning-subtle text-warning border ms-1">Avulso</span></td>
                 <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
                 <td>${valorDisplay}</td>
                 <td class="subtotal">${subtotalDisplay}</td>
@@ -163,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         editServicosTableBody.insertAdjacentHTML('beforeend', row);
         updateEditTotals();
-        avulsoModalEdit.hide();
+        avulsoModalEdit?.hide();
     });
 
     editServicosTableBody.addEventListener('input', e => {
@@ -438,6 +443,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             btnSalvarAlteracoes.innerHTML = `Salvar Alterações`;
         }
     });
+
+    // --- FILTRO DE BUSCA RÁPIDA ---
+    const searchInput = document.getElementById('search-os-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            tableBody.querySelectorAll('tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    }
 
     // --- INICIALIZAÇÃO ---
     carregarOrdens();

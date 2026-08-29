@@ -1,5 +1,6 @@
 <?php
-ini_set('display_errors', 1);
+ob_start();
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 require 'conexao.php';
 header('Content-Type: application/json');
@@ -10,7 +11,6 @@ try {
     switch ($method) {
         case 'GET':
             if ($id) {
-                // Busca uma OS específica com detalhes do cliente e serviços
                 $stmt = $pdo->prepare("SELECT os.*, c.nome as cliente_nome, c.telefone as cliente_telefone, c.email as cliente_email 
                                        FROM ordens_servico os 
                                        JOIN clientes c ON os.cliente_id = c.id 
@@ -26,17 +26,14 @@ try {
 
                 $stmt_servicos = $pdo->prepare("SELECT os_s.*, 
                                                        os_s.nome_item as servico_nome, 
-                                                       os_s.tipo_item as servico_tipo,
-                                                       s.valor as valor_catalogo 
+                                                       os_s.tipo_item as servico_tipo
                                                 FROM os_servicos os_s
-                                                LEFT JOIN servicos s ON os_s.servico_id = s.id
                                                 WHERE os_s.os_id = ?");
                 $stmt_servicos->execute([$id]);
                 $os['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
                 echo json_encode($os);
             } else {
-                // Busca todas as OS
                 $sql = "SELECT os.*, c.nome as cliente_nome 
                         FROM ordens_servico os
                         JOIN clientes c ON os.cliente_id = c.id
@@ -47,7 +44,6 @@ try {
             break;
         
         case 'POST':
-            // ... (seu código POST permanece inalterado) ...
             $data = json_decode(file_get_contents('php://input'), true);
             $pdo->beginTransaction();
             $clienteId = $data['clienteId'] ?? null;
@@ -62,10 +58,12 @@ try {
                     $clienteId = $pdo->lastInsertId();
                 }
             }
-            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status) VALUES (?, ?, ?, ?, ?, 'Aberta')";
+            $dataEntrada = !empty($data['data_entrada']) ? (strlen($data['data_entrada']) === 10 ? $data['data_entrada'] . ' ' . date('H:i:s') : $data['data_entrada']) : date('Y-m-d H:i:s');
+            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status, data_entrada) VALUES (?, ?, ?, ?, ?, 'Aberta', ?)";
             $stmtOs = $pdo->prepare($sqlOs);
-            $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total']]);
+            $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total'], $dataEntrada]);
             $osId = $pdo->lastInsertId();
+            
             $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, nome_item, tipo_item, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmtOsServicos = $pdo->prepare($sqlOsServicos);
             foreach ($data['servicos'] as $servico) {
@@ -91,63 +89,68 @@ try {
             }
             $data = json_decode(file_get_contents('php://input'), true);
 
-            // ATUALIZAÇÃO RÁPIDA DE STATUS (do modal)
             if (isset($data['quick_update']) && $data['quick_update'] === true) {
                 $sql_quick_update = "UPDATE ordens_servico SET status = ?, data_saida = ? WHERE id = ?";
                 $stmt_quick_update = $pdo->prepare($sql_quick_update);
-                
                 $data_saida = ($data['status'] === 'Concluída' || $data['status'] === 'Cancelada') ? date('Y-m-d H:i:s') : null;
-
-                $stmt_quick_update->execute([
-                    $data['status'],
-                    $data_saida, 
-                    $id
-                ]);
+                $stmt_quick_update->execute([$data['status'], $data_saida, $id]);
                 
-                // *** INÍCIO DO GATILHO DE E-MAIL ***
                 if ($data['status'] === 'Concluída') {
-                    // 1. Registra na fila de e-mails
-                    try {
-                        $stmt_cliente = $pdo->prepare("SELECT c.email, c.nome FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
-                        $stmt_cliente->execute([$id]);
-                        $cliente = $stmt_cliente->fetch();
-                        
-                        if ($cliente && !empty($cliente['email'])) {
-                            $stmt_queue = $pdo->prepare("INSERT INTO email_queue (os_id, destinatario, assunto, status) VALUES (?, ?, ?, 'pendente')");
-                            $assunto = "Sua Ordem de Serviço #" . $id . " foi Concluída!";
-                            $stmt_queue->execute([$id, $cliente['email'], $assunto]);
-                        }
-                    } catch (Exception $e_queue) {
-                        // Logar erro da fila se necessário, mas não parar o processo
+                    // REGISTRA NA FILA DE EMAIL
+                    $stmt_cli = $pdo->prepare("SELECT c.email, c.nome FROM ordens_servico os JOIN clientes c ON os.cliente_id = c.id WHERE os.id = ?");
+                    $stmt_cli->execute([$id]);
+                    $cli = $stmt_cli->fetch();
+                    if ($cli && !empty($cli['email'])) {
+                        $stmt_queue = $pdo->prepare("INSERT INTO email_queue (os_id, destinatario, assunto) VALUES (?, ?, ?)");
+                        $stmt_queue->execute([$id, $cli['email'], "Ordem de Serviço #$id Concluída"]);
                     }
 
-                    // 2. Dispara o script em segundo plano
-                    $phpPath = 'php'; 
-                    $scriptPath = __DIR__ . '/disparar_email_os.php';
-                    $command = $phpPath . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($id);
-                    
+                    // Tenta detectar o caminho do PHP no XAMPP ou usa o padrão
+                    $phpPath = 'php';
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                        pclose(popen("start /B " . $command, "r"));
+                        $possiveis = [
+                            'C:\\php\\php.exe',
+                            'C:\\xampp\\php\\php.exe',
+                            'D:\\xampp\\php\\php.exe',
+                            'B:\\Programs\\XAMPP\\php\\php.exe',
+                            dirname(__DIR__, 5) . '\\php\\php.exe',
+                            'php'
+                        ];
+                        foreach ($possiveis as $p) {
+                            if ($p === 'php' || file_exists($p)) {
+                                $phpPath = $p;
+                                break;
+                            }
+                        }
+                    }
+
+                    $scriptPath = __DIR__ . '/disparar_email_os.php';
+                    $command = escapeshellarg($phpPath) . ' ' . escapeshellarg($scriptPath) . ' ' . escapeshellarg($id);
+                    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                        // IMPORTANTE: No Windows, o primeiro argumento entre aspas do comando 'start' é o Título. 
+                        // Usamos "" para o título para evitar que o caminho do PHP seja ignorado.
+                        pclose(popen("start /B \"\" " . $command, "r"));
                     } else {
                         shell_exec($command . ' > /dev/null 2>&1 &');
                     }
                 }
-                // *** FIM DO GATILHO DE E-MAIL ***
-
-                // A parte de apagar o PDF antigo não é mais necessária aqui, pois não salvamos mais o PDF
-                // para o envio de e-mail. A funcionalidade de visualização continua independente.
-                
                 echo json_encode(['success' => true]);
-
-            // ATUALIZAÇÃO COMPLETA (do modal)
             } else {
-                // ... (seu código de atualização completa permanece inalterado) ...
                 $pdo->beginTransaction();
-                $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
-                $stmt_update = $pdo->prepare($sql_update);
-                $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
+                $dataEntrada = !empty($data['data_entrada']) ? (strlen($data['data_entrada']) === 10 ? $data['data_entrada'] . ' ' . date('H:i:s') : $data['data_entrada']) : null;
+                if ($dataEntrada) {
+                    $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ?, data_entrada = ? WHERE id = ?";
+                    $stmt_update = $pdo->prepare($sql_update);
+                    $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $dataEntrada, $id ]);
+                } else {
+                    $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
+                    $stmt_update = $pdo->prepare($sql_update);
+                    $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
+                }
+                
                 $stmt_delete_servicos = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
                 $stmt_delete_servicos->execute([$id]);
+                
                 $sql_insert_servicos = "INSERT INTO os_servicos (os_id, servico_id, nome_item, tipo_item, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 $stmt_insert_servicos = $pdo->prepare($sql_insert_servicos);
                 foreach ($data['servicos'] as $servico) {
@@ -167,13 +170,10 @@ try {
             break;
 
         case 'DELETE':
-            // ... (seu código DELETE permanece inalterado) ...
             if (!$id) { http_response_code(400); echo json_encode(['error' => 'ID da OS não fornecido.']); exit; }
             $pdo->beginTransaction();
-            $stmt1 = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
-            $stmt1->execute([$id]);
-            $stmt2 = $pdo->prepare("DELETE FROM ordens_servico WHERE id = ?");
-            $stmt2->execute([$id]);
+            $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM ordens_servico WHERE id = ?")->execute([$id]);
             $pdo->commit();
             echo json_encode(['success' => true]);
             break;
@@ -185,10 +185,10 @@ try {
     }
 
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
+    ob_end_clean();
+    if ($pdo->inTransaction()) { $pdo->rollBack(); }
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Erro no servidor: ' . $e->getMessage()]);
 }
+ob_end_flush();
 ?>

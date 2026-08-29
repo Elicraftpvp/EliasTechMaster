@@ -58,9 +58,10 @@ try {
                     $clienteId = $pdo->lastInsertId();
                 }
             }
-            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status) VALUES (?, ?, ?, ?, ?, 'Aberta')";
+            $dataEntrada = !empty($data['data_entrada']) ? (strlen($data['data_entrada']) === 10 ? $data['data_entrada'] . ' ' . date('H:i:s') : $data['data_entrada']) : date('Y-m-d H:i:s');
+            $sqlOs = "INSERT INTO ordens_servico (cliente_id, equipamento, problema_relatado, laudo_tecnico, valor_total, status, data_entrada) VALUES (?, ?, ?, ?, ?, 'Aberta', ?)";
             $stmtOs = $pdo->prepare($sqlOs);
-            $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total']]);
+            $stmtOs->execute([$clienteId, $data['equipamento'], $data['problema'], $data['laudo'], (float)$data['total'], $dataEntrada]);
             $osId = $pdo->lastInsertId();
             
             $sqlOsServicos = "INSERT INTO os_servicos (os_id, servico_id, nome_item, tipo_item, quantidade, valor_unitario, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -136,9 +137,16 @@ try {
                 echo json_encode(['success' => true]);
             } else {
                 $pdo->beginTransaction();
-                $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
-                $stmt_update = $pdo->prepare($sql_update);
-                $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
+                $dataEntrada = !empty($data['data_entrada']) ? (strlen($data['data_entrada']) === 10 ? $data['data_entrada'] . ' ' . date('H:i:s') : $data['data_entrada']) : null;
+                if ($dataEntrada) {
+                    $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ?, data_entrada = ? WHERE id = ?";
+                    $stmt_update = $pdo->prepare($sql_update);
+                    $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $dataEntrada, $id ]);
+                } else {
+                    $sql_update = "UPDATE ordens_servico SET equipamento = ?, problema_relatado = ?, laudo_tecnico = ?, status = ?, valor_total = ? WHERE id = ?";
+                    $stmt_update = $pdo->prepare($sql_update);
+                    $stmt_update->execute([ $data['equipamento'], $data['problema'], $data['laudo'], $data['status'], (float)$data['total'], $id ]);
+                }
                 
                 $stmt_delete_servicos = $pdo->prepare("DELETE FROM os_servicos WHERE os_id = ?");
                 $stmt_delete_servicos->execute([$id]);

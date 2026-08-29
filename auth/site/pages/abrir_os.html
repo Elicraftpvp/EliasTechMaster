@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrir Ordem de Serviço</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../style/css.css">
     <style>
-        /* Estilos para o container de resultados da busca */
         .search-results-container {
             position: relative;
         }
@@ -17,21 +19,22 @@
             top: 100%;
             left: 0;
             right: 0;
-            z-index: 1000;
-            border: 1px solid #ced4da;
-            border-top: none;
-            max-height: 200px;
+            z-index: 1050;
+            border: 1px solid var(--card-border);
+            max-height: 220px;
             overflow-y: auto;
-            display: none; /* Começa escondido */
+            display: none;
+            background: var(--card-bg-solid);
         }
         .search-result-item {
             padding: 0.75rem 1.25rem;
-            background-color: #fff;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--card-border);
             cursor: pointer;
+            transition: background-color 0.15s ease;
+            color: var(--text-main);
         }
         .search-result-item:hover {
-            background-color: #f8f9fa;
+            background-color: #ece5da;
         }
         .search-result-item:last-child {
             border-bottom: none;
@@ -40,84 +43,177 @@
 </head>
 <body id="page-abrir-os" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-plus-circle"></i> Abrir Nova Ordem de Serviço</h2>
-        <form id="os-form" class="glass-card p-4" onsubmit="return false;">
-            <div class="card-body p-0">
-                <h5 class="fw-bold mb-4 text-secondary">1. Dados do Cliente</h5>
+        
+        <!-- HERO / HEADER -->
+        <div class="dashboard-hero-card mb-4 p-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon-wrapper" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.15));">
+                        <i class="fas fa-plus-circle text-success"></i>
+                    </div>
+                    <div>
+                        <h2 class="hero-title mb-1">Abrir Nova Ordem de Serviço</h2>
+                        <p class="hero-subtitle mb-0">Cadastre equipamentos, diagnósticos técnicos e serviços prestados</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="system-status-pill">
+                        <i class="fas fa-file-signature me-1"></i>
+                        <span>Emissão Ativa</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <form id="os-form" onsubmit="return false;">
+            
+            <!-- SEÇÃO 1: DADOS DO CLIENTE -->
+            <div class="glass-card p-4 mb-4 shadow-sm">
+                <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-light-subtle">
+                    <div class="liquid-header-icon me-2" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0 text-dark">1. Dados do Cliente</h5>
+                </div>
+
                 <div class="row">
                     <!-- Campo oculto para guardar o ID do cliente selecionado -->
                     <input type="hidden" id="cliente_id">
 
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-medium">Nome</label>
+                        <label class="form-label fw-semibold text-dark">Nome do Cliente <span class="text-danger">*</span></label>
                         <div class="search-results-container">
-                            <input type="text" class="form-control" id="cliente_nome" placeholder="Busque ou digite o nome..." required autocomplete="off">
-                            <!-- Div para exibir os resultados da busca -->
-                            <div id="search-results" class="glass-card shadow-lg mt-1 overflow-hidden" style="border-radius: 10px;"></div>
+                            <input type="text" class="form-control form-control-lg fs-6" id="cliente_nome" placeholder="Busque pelo nome ou digite para novo cadastro..." required autocomplete="off">
+                            <div id="search-results" class="glass-card shadow-lg mt-1 overflow-hidden" style="border-radius: 12px;"></div>
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label fw-medium">Telefone</label>
-                        <input type="text" class="form-control" id="cliente_telefone" placeholder="(00) 00000-0000">
+                        <label class="form-label fw-semibold text-dark">Telefone / WhatsApp</label>
+                        <input type="text" class="form-control form-control-lg fs-6" id="cliente_telefone" placeholder="(48) 99999-9999">
                     </div>
                     <div class="col-md-3 mb-3">
-                        <label class="form-label fw-medium">E-mail</label>
-                        <input type="email" class="form-control" id="cliente_email" placeholder="cliente@email.com">
+                        <label class="form-label fw-semibold text-dark">E-mail</label>
+                        <input type="email" class="form-control form-control-lg fs-6" id="cliente_email" placeholder="cliente@email.com">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 2: EQUIPAMENTO & DATAS -->
+            <div class="glass-card p-4 mb-4 shadow-sm">
+                <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-light-subtle">
+                    <div class="liquid-header-icon me-2" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-laptop-medical"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0 text-dark">2. Informações do Equipamento & Entrada</h5>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label fw-semibold text-dark">Equipamento / Produto <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="equipamento" placeholder="Ex: Notebook Dell Inspiron 15, Desktop i7, etc." required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold text-dark">Data do Serviço / Entrada</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fas fa-calendar-day"></i></span>
+                            <input type="date" class="form-control border-start-0" id="data_entrada">
+                        </div>
+                        <small class="text-muted" style="font-size: 11px;">Se não preenchida, assume a data/hora atual automaticamente.</small>
                     </div>
                 </div>
 
-                <h5 class="fw-bold mb-4 mt-4 text-secondary">2. Informações do Equipamento</h5>
-                <div class="mb-3"><label class="form-label fw-medium">Equipamento / Produto</label><input type="text" class="form-control" id="equipamento" placeholder="Ex: Notebook Dell Inspiron" required></div>
-                <div class="mb-3"><label class="form-label fw-medium">Problema Informado</label><textarea class="form-control" id="problema" rows="2" placeholder="Descreva o problema relatado pelo cliente..."></textarea></div>
-                <div class="mb-3"><label class="form-label fw-medium">Laudo Técnico</label><textarea class="form-control" id="laudo" rows="2" placeholder="Sua análise técnica inicial..."></textarea></div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold text-dark">Problema Informado pelo Cliente</label>
+                        <textarea class="form-control" id="problema" rows="2" placeholder="Descreva as falhas ou sintomas informados..."></textarea>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold text-dark">Laudo Técnico Preliminar</label>
+                        <textarea class="form-control" id="laudo" rows="2" placeholder="Diagnóstico inicial ou observações do técnico..."></textarea>
+                    </div>
+                </div>
+            </div>
 
-                <h5 class="fw-bold mb-4 mt-4 text-secondary">3. Serviços Realizados</h5>
+            <!-- SEÇÃO 3: SERVIÇOS, PEÇAS & DESCONTOS -->
+            <div class="glass-card p-4 mb-4 shadow-sm">
+                <div class="d-flex align-items-center mb-3 pb-2 border-bottom border-light-subtle">
+                    <div class="liquid-header-icon me-2" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-receipt"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0 text-dark">3. Serviços & Itens Realizados</h5>
+                </div>
+
                 <div class="input-group mb-4 shadow-sm" style="border-radius: 12px; overflow: hidden;">
                     <select class="form-select border-0 bg-white" id="servicos-select"></select>
-                    <button class="btn btn-primary" type="button" id="add-servico-btn">Adicionar</button>
-                    <button class="btn btn-outline-primary bg-white" type="button" id="open-avulso-modal-btn">
-                        <i class="fas fa-plus"></i> Item Avulso
+                    <button class="btn btn-primary px-4" type="button" id="add-servico-btn">
+                        <i class="fas fa-plus me-1"></i> Adicionar
+                    </button>
+                    <button class="btn btn-outline-secondary bg-white px-3" type="button" id="open-avulso-modal-btn">
+                        <i class="fas fa-tag me-1"></i> Item Avulso
                     </button>
                 </div>
+
                 <div class="table-responsive">
-                    <table class="table">
-                        <thead><tr><th>Descrição</th><th style="width: 100px;">Qtd</th><th>Valor Unit.</th><th>Subtotal</th><th style="width: 50px;">Ação</th></tr></thead>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Descrição do Item</th>
+                                <th style="width: 100px;">Qtd</th>
+                                <th>Valor Unitário</th>
+                                <th>Subtotal</th>
+                                <th style="width: 60px;" class="text-center">Ação</th>
+                            </tr>
+                        </thead>
                         <tbody id="servicos-selecionados-body"></tbody>
                     </table>
                 </div>
+
                 <hr class="my-4 opacity-10">
-                <div class="d-flex justify-content-end align-items-center">
-                    <h4 class="me-4 text-muted fw-bold">TOTAL:</h4>
-                    <h2 id="total-os" class="text-primary fw-bold">R$ 0,00</h2>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>Peças e serviços somam ao valor; descontos são deduzidos automaticamente.
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <h5 class="me-3 text-muted fw-bold mb-0">VALOR TOTAL DA OS:</h5>
+                        <h2 id="total-os" class="text-emerald fw-bold mb-0">R$ 0,00</h2>
+                    </div>
                 </div>
             </div>
-            <div class="mt-4 pt-3 text-end">
-                <button type="reset" class="btn btn-outline-secondary me-2 px-4" id="limpar-form-btn">Limpar</button>
-                <button type="button" id="salvar-os-btn" class="btn btn-primary btn-lg px-5"><i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS</button>
+
+            <!-- BOTÕES DE AÇÃO -->
+            <div class="mt-4 mb-5 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4 py-2" id="limpar-form-btn">
+                    <i class="fas fa-eraser me-1"></i> Limpar Formulário
+                </button>
+                <button type="button" id="salvar-os-btn" class="btn btn-primary btn-lg px-5 py-2 shadow">
+                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF e Salvar OS
+                </button>
             </div>
+
         </form>
     </div>
 
-    <!-- Modal para Item Avulso -->
+    <!-- MODAL PARA ITEM AVULSO -->
     <div class="modal fade" id="avulsoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Adicionar Item Avulso</h5>
+            <div class="modal-content glass-card shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fas fa-tag text-primary me-2"></i>Adicionar Item Avulso</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label">Nome do Serviço/Item</label>
-                        <input type="text" class="form-control" id="avulso-nome" placeholder="Ex: Limpeza especial">
+                        <label class="form-label fw-semibold">Nome do Serviço / Peça</label>
+                        <input type="text" class="form-control" id="avulso-nome" placeholder="Ex: Cabo flat extra, Manutenção emergencial...">
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Valor</label>
+                            <label class="form-label fw-semibold">Valor</label>
                             <input type="number" step="0.01" class="form-control" id="avulso-valor" placeholder="0.00">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Tipo</label>
+                            <label class="form-label fw-semibold">Tipo de Item</label>
                             <select class="form-select" id="avulso-tipo">
                                 <option value="servico">Serviço</option>
                                 <option value="peca">Peça</option>
@@ -127,14 +223,15 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="add-avulso-btn">Adicionar à OS</button>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="add-avulso-btn"><i class="fas fa-check me-1"></i>Adicionar à OS</button>
                 </div>
             </div>
         </div>
     </div>
-    <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
+
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../script/common.js"></script>
     <script src="../script/abrir_os.js"></script>

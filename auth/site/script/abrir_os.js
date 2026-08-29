@@ -1,4 +1,4 @@
-// site/script/abrir_os.js
+// auth/site/script/abrir_os.js
 
 document.addEventListener('DOMContentLoaded', () => {
     // Referências aos elementos do formulário
@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const clienteTelefoneInput = document.getElementById('cliente_telefone');
     const clienteEmailInput = document.getElementById('cliente_email');
     const searchResultsDiv = document.getElementById('search-results');
+    const dataEntradaInput = document.getElementById('data_entrada');
     
     const servicosSelect = document.getElementById('servicos-select');
     const addServicoBtn = document.getElementById('add-servico-btn');
@@ -20,7 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let listaDeServicos = [];
     let searchTimeout;
 
-    // --- CARREGAMENTO INICIAL ---
+    // Inicializa a data com o dia de hoje (YYYY-MM-DD)
+    const resetDataHoje = () => {
+        if (dataEntradaInput) {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            dataEntradaInput.value = `${ano}-${mes}-${dia}`;
+        }
+    };
+    resetDataHoje();
+
+    // --- CARREGAMENTO INICIAL DE SERVIÇOS ---
     const carregarServicos = async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/servicos_api.php`);
@@ -37,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Erro ao carregar serviços:", error);
-            servicosSelect.innerHTML = '<option>Erro ao carregar</option>';
+            servicosSelect.innerHTML = '<option>Erro ao carregar serviços</option>';
         }
     };
 
@@ -59,11 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             runningTotal += impacto;
-            
-            // Armazena o impacto individual no dataset para facilitar o salvamento posterior
             row.dataset.impactoIndividual = impacto;
-
-            // Exibe o total acumulado na coluna Subtotal
             row.querySelector('.subtotal').textContent = runningTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         });
         
@@ -78,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const servico = listaDeServicos.find(s => s.id == servicoId);
         if (!servico) return;
 
-        // Evita adicionar o mesmo item duas vezes
+        // Evita duplicar
         if (servicosTableBody.querySelector(`tr[data-id="${servico.id}"]`)) {
             showToast('Este item já foi adicionado.', 'error');
             return;
@@ -87,116 +96,128 @@ document.addEventListener('DOMContentLoaded', () => {
         let valorDisplay, subtotalDisplay;
         const valorUnit = parseFloat(servico.valor);
         
-        if(servico.tipo === 'desconto_percentual') {
+        if (servico.tipo === 'desconto_percentual') {
             valorDisplay = `${valorUnit.toFixed(2)}%`;
             subtotalDisplay = `${valorUnit.toFixed(2)}%`;
         } else if (servico.tipo === 'desconto_fixo') {
             valorDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
             subtotalDisplay = `-${valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-        } else { // tipo 'servico'
+        } else {
             valorDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             subtotalDisplay = valorUnit.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        const row = `
-            <tr data-id="${servico.id}" data-nome="${servico.nome}" data-valor="${servico.valor}" data-tipo="${servico.tipo}">
-                <td>${servico.nome}</td>
-                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${servico.tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
-                <td>${valorDisplay}</td>
-                <td class="subtotal">${subtotalDisplay}</td>
-                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
-            </tr>`;
-        servicosTableBody.insertAdjacentHTML('beforeend', row);
+        const tr = document.createElement('tr');
+        tr.dataset.id = servico.id;
+        tr.dataset.nome = servico.nome;
+        tr.dataset.valor = valorUnit;
+        tr.dataset.tipo = servico.tipo;
+
+        tr.innerHTML = `
+            <td class="fw-semibold">${servico.nome} <span class="badge bg-light text-secondary border ms-1">${servico.tipo}</span></td>
+            <td><input type="number" class="form-control form-control-sm qtd-servico text-center" value="1" min="1" style="max-width: 80px;"></td>
+            <td class="valor-unitario">${valorDisplay}</td>
+            <td class="subtotal fw-bold text-dark">${subtotalDisplay}</td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-servico-btn rounded-circle"><i class="fas fa-trash"></i></button></td>
+        `;
+
+        servicosTableBody.appendChild(tr);
         updateTotal();
+        servicosSelect.selectedIndex = 0;
     });
 
-    // --- ITEM AVULSO ---
-    const avulsoModal = new bootstrap.Modal(document.getElementById('avulsoModal'));
-    const openAvulsoBtn = document.getElementById('open-avulso-modal-btn');
-    const addAvulsoBtn = document.getElementById('add-avulso-btn');
-
-    openAvulsoBtn.addEventListener('click', () => {
-        document.getElementById('avulso-nome').value = '';
-        document.getElementById('avulso-valor').value = '';
-        document.getElementById('avulso-tipo').value = 'servico';
-        avulsoModal.show();
-    });
-
-    addAvulsoBtn.addEventListener('click', () => {
-        const nome = document.getElementById('avulso-nome').value.trim();
-        const valor = parseFloat(document.getElementById('avulso-valor').value) || 0;
-        const tipo = document.getElementById('avulso-tipo').value;
-
-        if (!nome || valor < 0) {
-            showAlert('Por favor, preencha o nome e um valor válido.', 'error', 'Campo Obrigatório');
-            return;
-        }
-
-        let valorDisplay, subtotalDisplay;
-        if(tipo === 'desconto_percentual') {
-            valorDisplay = `${valor.toFixed(2)}%`;
-            subtotalDisplay = `${valor.toFixed(2)}%`;
-        } else if (tipo === 'desconto_fixo') {
-            valorDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-            subtotalDisplay = `-${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-        } else if (tipo === 'peca' || tipo === 'servico') {
-            valorDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            subtotalDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        const row = `
-            <tr data-id="avulso" data-nome="${nome}" data-valor="${valor}" data-tipo="${tipo}">
-                <td><span class="badge bg-secondary me-1">Avulso</span> ${nome}</td>
-                <td><input type="number" class="form-control form-control-sm qtd-servico" value="1" min="1" ${tipo === 'desconto_percentual' ? 'readonly' : ''}></td>
-                <td>${valorDisplay}</td>
-                <td class="subtotal">${subtotalDisplay}</td>
-                <td><button type="button" class="btn btn-danger btn-sm remover-servico">X</button></td>
-            </tr>`;
-        
-        servicosTableBody.insertAdjacentHTML('beforeend', row);
-        updateTotal();
-        avulsoModal.hide();
-    });
-
-    servicosTableBody.addEventListener('input', e => {
+    // Delegar eventos na tabela (quantidade e remoção)
+    servicosTableBody.addEventListener('input', (e) => {
         if (e.target.classList.contains('qtd-servico')) {
             updateTotal();
         }
     });
 
-    servicosTableBody.addEventListener('click', e => {
-        if (e.target.classList.contains('remover-servico')) {
-            e.target.closest('tr').remove();
+    servicosTableBody.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.remove-servico-btn');
+        if (removeBtn) {
+            removeBtn.closest('tr').remove();
             updateTotal();
         }
     });
 
-    // --- BUSCA DE CLIENTES ---
-    clienteNomeInput.addEventListener('keyup', () => {
+    // --- ITEM AVULSO ---
+    const avulsoModalEl = document.getElementById('avulsoModal');
+    const avulsoModal = avulsoModalEl ? new bootstrap.Modal(avulsoModalEl) : null;
+    const openAvulsoModalBtn = document.getElementById('open-avulso-modal-btn');
+    const addAvulsoBtn = document.getElementById('add-avulso-btn');
+
+    openAvulsoModalBtn?.addEventListener('click', () => {
+        document.getElementById('avulso-nome').value = '';
+        document.getElementById('avulso-valor').value = '';
+        document.getElementById('avulso-tipo').selectedIndex = 0;
+        avulsoModal?.show();
+    });
+
+    addAvulsoBtn?.addEventListener('click', () => {
+        const nome = document.getElementById('avulso-nome').value.trim();
+        const valor = parseFloat(document.getElementById('avulso-valor').value) || 0;
+        const tipo = document.getElementById('avulso-tipo').value;
+
+        if (!nome || valor <= 0) {
+            showAlert('Por favor, informe a descrição e um valor válido.', 'warning', 'Item Inválido');
+            return;
+        }
+
+        const fakeId = 'avulso_' + Date.now();
+        const tr = document.createElement('tr');
+        tr.dataset.id = fakeId;
+        tr.dataset.nome = nome;
+        tr.dataset.valor = valor;
+        tr.dataset.tipo = tipo;
+
+        let valorDisplay = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        if (tipo === 'desconto_fixo') valorDisplay = `-${valorDisplay}`;
+        if (tipo === 'desconto_percentual') valorDisplay = `${valor.toFixed(2)}%`;
+
+        tr.innerHTML = `
+            <td class="fw-semibold">${nome} <span class="badge bg-warning-subtle text-warning border ms-1">Avulso</span></td>
+            <td><input type="number" class="form-control form-control-sm qtd-servico text-center" value="1" min="1" style="max-width: 80px;"></td>
+            <td class="valor-unitario">${valorDisplay}</td>
+            <td class="subtotal fw-bold text-dark">${valorDisplay}</td>
+            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-servico-btn rounded-circle"><i class="fas fa-trash"></i></button></td>
+        `;
+
+        servicosTableBody.appendChild(tr);
+        updateTotal();
+        avulsoModal?.hide();
+    });
+
+    // --- AUTOCOMPLETE DE CLIENTES ---
+    clienteNomeInput?.addEventListener('input', () => {
         clearTimeout(searchTimeout);
-        const query = clienteNomeInput.value;
-        if (query.length < 2) {
+        const termo = clienteNomeInput.value.trim();
+        if (termo.length < 2) {
             searchResultsDiv.style.display = 'none';
             return;
         }
+
         searchTimeout = setTimeout(async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/clientes_api.php?search=${query}`);
+                const response = await fetch(`${API_BASE_URL}/clientes_api.php`);
                 const clientes = await response.json();
-                searchResultsDiv.innerHTML = '';
-                if (clientes.length > 0) {
-                    clientes.forEach(cliente => {
-                        const div = document.createElement('div');
-                        div.className = 'search-result-item';
-                        div.textContent = `${cliente.nome} - ${cliente.telefone || 'Sem telefone'}`;
-                        div.addEventListener('click', () => {
-                            clienteIdInput.value = cliente.id;
-                            clienteNomeInput.value = cliente.nome;
-                            clienteTelefoneInput.value = cliente.telefone || '';
-                            clienteEmailInput.value = cliente.email || '';
+                const filtrados = clientes.filter(c => c.nome.toLowerCase().includes(termo.toLowerCase()));
+
+                if (filtrados.length > 0) {
+                    searchResultsDiv.innerHTML = filtrados.map(c => `
+                        <div class="search-result-item" data-id="${c.id}" data-nome="${c.nome}" data-tel="${c.telefone || ''}" data-email="${c.email || ''}">
+                            <strong>${c.nome}</strong> - <small class="text-muted">${c.telefone || 'Sem telefone'}</small>
+                        </div>
+                    `).join('');
+
+                    searchResultsDiv.querySelectorAll('.search-result-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            clienteIdInput.value = item.dataset.id;
+                            clienteNomeInput.value = item.dataset.nome;
+                            clienteTelefoneInput.value = item.dataset.tel;
+                            clienteEmailInput.value = item.dataset.email;
                             searchResultsDiv.style.display = 'none';
                         });
-                        searchResultsDiv.appendChild(div);
                     });
                     searchResultsDiv.style.display = 'block';
                 } else {
@@ -215,23 +236,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- SALVAR E LIMPAR ---
-    limparBtn.addEventListener('click', () => {
+    limparBtn?.addEventListener('click', () => {
         form.reset();
         servicosTableBody.innerHTML = '';
         clienteIdInput.value = '';
+        resetDataHoje();
         updateTotal();
     });
 
-    salvarBtn.addEventListener('click', async () => {
+    salvarBtn?.addEventListener('click', async () => {
         const osData = {
             clienteId: clienteIdInput.value,
-            clienteNome: clienteNomeInput.value,
-            clienteTelefone: clienteTelefoneInput.value,
-            clienteEmail: clienteEmailInput.value,
-            equipamento: document.getElementById('equipamento').value,
-            problema: document.getElementById('problema').value,
-            laudo: document.getElementById('laudo').value,
-            total: parseFloat(totalOsElement.textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()),
+            clienteNome: clienteNomeInput.value.trim(),
+            clienteTelefone: clienteTelefoneInput.value.trim(),
+            clienteEmail: clienteEmailInput.value.trim(),
+            equipamento: document.getElementById('equipamento').value.trim(),
+            problema: document.getElementById('problema').value.trim(),
+            laudo: document.getElementById('laudo').value.trim(),
+            data_entrada: dataEntradaInput ? dataEntradaInput.value.trim() : '',
+            total: parseFloat(totalOsElement.textContent.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0,
             servicos: Array.from(servicosTableBody.querySelectorAll('tr')).map(row => ({
                 id: row.dataset.id,
                 nome: row.dataset.nome,
@@ -243,12 +266,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         if (!osData.clienteNome || !osData.equipamento || osData.servicos.length === 0) {
-            showAlert('Cliente, Equipamento e pelo menos um Serviço/Desconto são obrigatórios.', 'warning', 'Dados Incompletos');
+            showAlert('Cliente, Equipamento e pelo menos um Serviço/Item são obrigatórios.', 'warning', 'Dados Incompletos');
             return;
         }
         
         salvarBtn.disabled = true;
-        salvarBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+        salvarBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Salvando...';
 
         try {
             const response = await fetch(`${API_BASE_URL}/os_api.php`, {
@@ -259,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (!result.success) throw new Error(result.error || 'Erro desconhecido ao salvar.');
 
-            // Pergunta sobre inclusão da NFSe
+            // Pergunta sobre inclusão do formato NFSe
             const querNfse = await perguntarFormatoNfse();
 
             // Gerar PDF
@@ -281,6 +304,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Iniciar
     carregarServicos();
 });
