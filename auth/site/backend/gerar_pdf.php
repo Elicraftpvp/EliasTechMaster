@@ -50,13 +50,13 @@ function gerarPdfParaAnexo(PDO $pdo, int $osId, bool $incluirNfse = false): ?arr
     $stmt_servicos->execute([$osId]);
     $data['servicos'] = $stmt_servicos->fetchAll(PDO::FETCH_ASSOC);
 
-    $stmt_pix = $pdo->prepare("SELECT chave, valor FROM configuracoes WHERE chave IN ('pix_chave', 'pix_nome', 'pix_cidade')");
-    $stmt_pix->execute();
-    $pix_raw = $stmt_pix->fetchAll(PDO::FETCH_KEY_PAIR);
+    $stmt_config = $pdo->query("SELECT chave, valor FROM configuracoes");
+    $configs = $stmt_config->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    $data['configs'] = $configs;
     $data['pix_config'] = [
-        'chave' => $pix_raw['pix_chave'] ?? '',
-        'nome' => $pix_raw['pix_nome'] ?? '',
-        'cidade' => $pix_raw['pix_cidade'] ?? ''
+        'chave' => $configs['pix_chave'] ?? '',
+        'nome' => $configs['pix_nome'] ?? '',
+        'cidade' => $configs['pix_cidade'] ?? ''
     ];
 
     $equipamentoNome = $data['equipamento'] ?? 'Equipamento';
@@ -187,11 +187,9 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
         $equipamento = htmlspecialchars($data['equipamento'] ?? 'Equipamento');
         $laudo = htmlspecialchars($data['laudo_tecnico'] ?? '');
 
-        // QR Code de Verificação Interna (Sem Valor Fiscal)
-        $qrPayloadInterno = "COMPROVANTE AUXILIAR DE SERVICOS | OS: " . $numeroOS . " | CLIENTE: " . $clienteNome . " | VALOR: R$ " . $totalFormatado . " | DATA: " . $dataHoraCompleta . " | DOCUMENTO SEM VALIDADE FISCAL";
-        $qrAutenticidadeBase64 = gerarQRCodeBase64($qrPayloadInterno);
-        $qrNfseTag = !empty($qrAutenticidadeBase64) 
-            ? "<img src='$qrAutenticidadeBase64' style='width: 85px; height: 85px;'>" 
+        // QR Code da página 2: usa o mesmo QR Code do PIX
+        $qrNfseTag = !empty($qrCodeBase64) 
+            ? "<img src='$qrCodeBase64' style='width: 85px; height: 85px; display: block; margin: 0 auto;'>" 
             : "";
 
         // Serviços para a tabela da NFSe
@@ -204,6 +202,19 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
             $linhasServicosNfse .= "<tr><td>$desc</td><td style='text-align: center;'>$qtd</td><td style='text-align: right;'>R$ $vUnit</td><td style='text-align: right;'>R$ $sub</td></tr>";
         }
 
+        $empresaNome = htmlspecialchars($data['configs']['nfse_empresa_nome'] ?? 'Elias Tech Master - Reparos de Computadores');
+        $empresaCnpj = htmlspecialchars($data['configs']['nfse_cnpj_cpf'] ?? '48.998.339/0001-70');
+        $empresaIm = htmlspecialchars($data['configs']['nfse_inscricao_municipal'] ?? '8920144-2');
+        $empresaEndereco = htmlspecialchars($data['configs']['nfse_endereco'] ?? 'Rua Pedro Paulo de Abreu, 801 - Forquilhinhas');
+        $empresaMun = htmlspecialchars(($data['configs']['nfse_municipio'] ?? 'São José') . ' - ' . ($data['configs']['nfse_uf'] ?? 'SC'));
+        $empresaCep = htmlspecialchars($data['configs']['nfse_cep'] ?? '88106-500');
+        $empresaEmail = htmlspecialchars($data['configs']['nfse_email'] ?? 'eliasgkersten@gmail.com');
+        $empresaTel = htmlspecialchars($data['configs']['nfse_telefone'] ?? '(48) 99833-9706');
+        $empresaRegime = htmlspecialchars($data['configs']['nfse_regime_tributario'] ?? 'Simples Nacional / MEI');
+        $codTributacao = htmlspecialchars($data['configs']['nfse_codigo_tributacao'] ?? '14.01.01');
+        $descTributacao = htmlspecialchars($data['configs']['nfse_desc_tributacao'] ?? 'Lubrificação, limpeza, lustração, revisão, conserto, restauração, manutenção e conservação de máquinas e equipamentos de informática e tecnologia.');
+        $diasGarantia = htmlspecialchars($data['configs']['nfse_garantia_dias'] ?? '90');
+
         $nfseHtml = "
         <div style='page-break-before: always;'></div>
         <div class='nfse-page-wrapper' style='position: relative;'>
@@ -211,7 +222,7 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
             <div class='nfse-container'>
             
             <!-- TARJA DE ALERTA NO TOPO -->
-            <div class='nfse-aviso-topo'>⚠ DOCUMENTO AUXILIAR DE PRESTAÇÃO DE SERVIÇOS — SEM VALIDADE FISCAL ⚠</div>
+            <div class='nfse-aviso-topo'><strong>[ ATENÇÃO ]</strong> DOCUMENTO AUXILIAR DE PRESTAÇÃO DE SERVIÇOS - SEM VALIDADE FISCAL</div>
 
             <!-- CABEÇALHO DEMONSTRATIVO -->
             <table class='nfse-header-table'>
@@ -225,7 +236,7 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
                         <span style='font-size: 9px; color: #444;'>Documento Auxiliar e Comprovante de Atendimento</span>
                     </td>
                     <td style='width: 25%; text-align: right; vertical-align: middle;'>
-                        <strong style='font-size: 9px;'>Elias TechMaster Reparos</strong><br>
+                        <strong style='font-size: 9px;'>$empresaNome</strong><br>
                         <span style='font-size: 8px; color: #666;'>Controle Interno e Garantia</span>
                     </td>
                 </tr>
@@ -270,7 +281,7 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
                     </td>
                     <td style='width: 25%; text-align: center; vertical-align: middle; padding: 4px;'>
                         $qrNfseTag
-                        <div style='font-size: 7px; color: #b71c1c; font-weight: bold; margin-top: 2px;'>Comprovante Interno</div>
+                        <div style='font-size: 7.5px; color: #1b5e20; font-weight: bold; margin-top: 2px;'>Pague via PIX</div>
                     </td>
                 </tr>
             </table>
@@ -281,43 +292,43 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
                 <tr>
                     <td style='width: 60%;'>
                         <span class='nfse-field-label'>Nome / Razão Social</span>
-                        <div class='nfse-field-val'><strong>ELIAS TECH MASTER REPAROS DE COMPUTADORES</strong></div>
+                        <div class='nfse-field-val'><strong>$empresaNome</strong></div>
                     </td>
                     <td style='width: 20%;'>
                         <span class='nfse-field-label'>CNPJ / CPF</span>
-                        <div class='nfse-field-val'>48.998.339/0001-70</div>
+                        <div class='nfse-field-val'>$empresaCnpj</div>
                     </td>
                     <td style='width: 20%;'>
                         <span class='nfse-field-label'>Inscrição Municipal</span>
-                        <div class='nfse-field-val'>8920144-2</div>
+                        <div class='nfse-field-val'>$empresaIm</div>
                     </td>
                 </tr>
                 <tr>
                     <td>
                         <span class='nfse-field-label'>Endereço</span>
-                        <div class='nfse-field-val'>Rua Pedro Paulo de Abreu, 801 - Forquilhinhas</div>
+                        <div class='nfse-field-val'>$empresaEndereco</div>
                     </td>
                     <td>
                         <span class='nfse-field-label'>Município / UF</span>
-                        <div class='nfse-field-val'>São José - SC</div>
+                        <div class='nfse-field-val'>$empresaMun</div>
                     </td>
                     <td>
                         <span class='nfse-field-label'>CEP</span>
-                        <div class='nfse-field-val'>88106-500</div>
+                        <div class='nfse-field-val'>$empresaCep</div>
                     </td>
                 </tr>
                 <tr>
                     <td>
                         <span class='nfse-field-label'>E-mail</span>
-                        <div class='nfse-field-val'>eliasgkersten@gmail.com</div>
+                        <div class='nfse-field-val'>$empresaEmail</div>
                     </td>
                     <td>
                         <span class='nfse-field-label'>Telefone</span>
-                        <div class='nfse-field-val'>(48) 99833-9706</div>
+                        <div class='nfse-field-val'>$empresaTel</div>
                     </td>
                     <td>
                         <span class='nfse-field-label'>Regime Tributário</span>
-                        <div class='nfse-field-val'>Simples Nacional / MEI</div>
+                        <div class='nfse-field-val'>$empresaRegime</div>
                     </td>
                 </tr>
             </table>
@@ -361,13 +372,13 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
                 <tr>
                     <td colspan='2'>
                         <span class='nfse-field-label'>Código de Tributação Nacional</span>
-                        <div class='nfse-field-val'><strong>14.01.01</strong> - Lubrificação, limpeza, lustração, revisão, conserto, restauração, manutenção e conservação de máquinas e equipamentos de informática e tecnologia.</div>
+                        <div class='nfse-field-val'><strong>$codTributacao</strong> - $descTributacao</div>
                     </td>
                 </tr>
                 <tr>
                     <td style='width: 50%;'>
                         <span class='nfse-field-label'>Local da Prestação</span>
-                        <div class='nfse-field-val'>São José - SC</div>
+                        <div class='nfse-field-val'>$empresaMun</div>
                     </td>
                     <td style='width: 50%;'>
                         <span class='nfse-field-label'>País da Prestação</span>
@@ -438,9 +449,9 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
                     <td style='font-size: 8px; line-height: 1.3; color: #444;'>
                         • <strong>Equipamento Atendido:</strong> $equipamento | <strong>Nº OS:</strong> $numeroOS<br>
                         " . (!empty($laudo) ? "• <strong>Laudo Técnico:</strong> $laudo<br>" : "") . "
-                        • <strong>Garantia dos Serviços:</strong> 90 dias a partir da data de entrega, cobrindo exclusivamente os serviços executados e peças trocadas constantes neste demonstrativo.<br>
+                        • <strong>Garantia dos Serviços:</strong> $diasGarantia dias a partir da data de entrega, cobrindo exclusivamente os serviços executados e peças trocadas constantes neste demonstrativo.<br>
                         <div style='margin-top: 4px; padding: 4px; background: #fff3cd; border: 1px solid #ffeeba; color: #856404; font-weight: bold; font-size: 7.5px;'>
-                            ⚠ ATENÇÃO: ESTE DOCUMENTO CONSTITUI APENAS UM RECIBO TÉCNICO AUXILIAR PARA CONTROLE INTERNO DO CLIENTE E PRESTADOR. NÃO POSSUI VALOR DE DOCUMENTO FISCAL E NÃO SUBSTITUI A NOTA FISCAL DE SERVIÇOS ELETRÔNICA (NFS-e).
+                            [ ATENÇÃO ] ESTE DOCUMENTO CONSTITUI APENAS UM RECIBO TÉCNICO AUXILIAR PARA CONTROLE INTERNO DO CLIENTE E PRESTADOR. NÃO POSSUI VALOR DE DOCUMENTO FISCAL E NÃO SUBSTITUI A NOTA FISCAL DE SERVIÇOS ELETRÔNICA (NFS-e).
                         </div>
                     </td>
                 </tr>
@@ -524,8 +535,8 @@ function gerarConteudoHtmlPdf(array $data, string $numeroOS, bool $incluirNfse =
         .nfse-total-table td { padding: 4px 6px; }
     </style></head><body>
         <!-- PÁGINA 1: ORDEM DE SERVIÇO -->
-        <div class='header'><h3>Elias TechMaster Reparos - " . htmlspecialchars($numeroOS) . "</h3></div>
-        <table class='header-table'><tr><td class='logo-cell'>$logoHtml</td><td class='company-details-cell'><strong>Rua Pedro Paulo de Abreu, 801</strong><br>Forquilhinhas - São José/SC<br><strong>E-mail:</strong> eliasgkersten@gmail.com<br><strong>Fone:</strong> (48) 99833-9706</td></tr></table>
+        <div class='header'><h3>$empresaNome - " . htmlspecialchars($numeroOS) . "</h3></div>
+        <table class='header-table'><tr><td class='logo-cell'>$logoHtml</td><td class='company-details-cell'><strong>$empresaEndereco</strong><br>$empresaMun<br><strong>E-mail:</strong> $empresaEmail<br><strong>Fone:</strong> $empresaTel</td></tr></table>
         <table class='info-table'><tr><td style='width: 50%;'><strong>Nº OS:</strong> " . htmlspecialchars($numeroOS) . "</td><td style='width: 50%;'><strong>Emissão:</strong> " . date('d/m/Y') . "</td></tr></table>
         <div class='section-title'>Dados do Cliente</div>
         <table class='info-table'><tr><td class='label'>Nome:</td><td>" . htmlspecialchars($data['cliente_nome'] ?? 'N/I') . "</td></tr><tr><td class='label'>Telefone:</td><td>" . htmlspecialchars($data['cliente_telefone'] ?? 'N/I') . "</td></tr><tr><td class='label'>E-mail:</td><td>" . htmlspecialchars($data['cliente_email'] ?? 'N/I') . "</td></tr></table>

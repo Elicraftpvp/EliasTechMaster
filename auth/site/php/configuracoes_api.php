@@ -32,6 +32,10 @@ try {
             handle_email_completo($pdo, $method, $input);
             break;
 
+        case 'nfse':
+            handle_nfse_config($pdo, $method, $input);
+            break;
+
         case 'usuarios':
             handle_usuarios($pdo, $method, $input, $_GET);
             break;
@@ -67,13 +71,12 @@ ob_end_flush();
 
 
 function handle_email_completo($pdo, $method, $input) {
-    $configFile = __DIR__ . '/../mail/email_config.json';
     $acao = $input['acao'] ?? null;
 
-    if ($method == 'POST') {
+    if ($method == 'POST' && !empty($acao)) {
         switch ($acao) {
             case 'testar_smtp':
-                testar_conexao_smtp($input, $configFile);
+                testar_conexao_smtp($pdo, $input);
                 return;
             case 'enviar_teste_simples':
                 enviar_email_teste_simples($input);
@@ -85,34 +88,43 @@ function handle_email_completo($pdo, $method, $input) {
     }
 
     if ($method == 'GET') {
-        if (file_exists($configFile)) {
-            $config = json_decode(file_get_contents($configFile), true) ?: [];
-            $config['smtp_pass_exists'] = !empty($config['smtp_password:']);
-            unset($config['smtp_password:']);
-            echo json_encode($config);
-        } else {
-            echo json_encode([]);
+        $keys = [
+            'email_account_type' => 'imap',
+            'email_incoming_host' => '',
+            'smtp_host' => '',
+            'smtp_port' => '587',
+            'smtp_user' => '',
+            'smtp_security' => 'tls',
+            'smtp_auth' => '1',
+            'email_subject_template' => 'OS: (N_OS_tag) - Cliente: (Nome_cliente_tag)',
+            'email_body_template' => "Olá (Nome_cliente_tag),\n\nSua Ordem de Serviço de número (N_OS_tag) foi atualizada.\nStatus atual: (Status_OS_tag)\n\nAgradecemos a preferência.\n\nAtenciosamente,\nEquipe de Suporte"
+        ];
+        $config = [];
+        foreach ($keys as $k => $default) {
+            $config[$k] = get_config($pdo, $k, $default);
         }
+        $pass = get_config($pdo, 'smtp_pass', '');
+        $config['smtp_pass_exists'] = !empty($pass);
+        echo json_encode($config);
     } 
-    elseif ($method == 'PUT') {
-        $configExistente = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
-        if (!is_array($configExistente)) $configExistente = [];
+    elseif ($method == 'PUT' || $method == 'POST') {
+        $fields = [
+            'email_account_type', 'email_incoming_host', 'smtp_host',
+            'smtp_port', 'smtp_user', 'smtp_security', 'smtp_auth',
+            'email_subject_template', 'email_body_template'
+        ];
 
-        $configParaSalvar = $input;
-        if (empty($input['smtp_pass']) && isset($configExistente['smtp_password:'])) {
-            $configParaSalvar['smtp_password:'] = $configExistente['smtp_password:'];
-        } else {
-            $configParaSalvar['smtp_password:'] = $input['smtp_pass'];
+        foreach ($fields as $field) {
+            if (isset($input[$field])) {
+                set_config($pdo, $field, (string)$input[$field]);
+            }
         }
 
-        unset($configParaSalvar['_method'], $configParaSalvar['tipo'], $configParaSalvar['smtp_pass'], $configParaSalvar['acao']);
-
-        if (file_put_contents($configFile, json_encode($configParaSalvar, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
-            echo json_encode(['success' => true, 'message' => 'Configurações de e-mail salvas com sucesso!']);
-        } else {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Não foi possível salvar o arquivo de configuração.']);
+        if (!empty($input['smtp_pass'])) {
+            set_config($pdo, 'smtp_pass', (string)$input['smtp_pass']);
         }
+
+        echo json_encode(['success' => true, 'message' => 'Configurações de e-mail salvas no banco de dados com sucesso!']);
     } else {
         http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
@@ -120,38 +132,78 @@ function handle_email_completo($pdo, $method, $input) {
 }
 
 
-function testar_conexao_smtp($input, $configFile) {
+function testar_conexao_smtp($pdo, $input) {
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host = $input['smtp_host'];
-        $mail->Port = (int)$input['smtp_port'];
-        $mail->SMTPAuth = (bool)$input['smtp_auth'];
-        $mail->Username = $input['smtp_user'];
-        $mail->SMTPSecure = $input['smtp_security'] === 'none' ? '' : $input['smtp_security'];
+        $mail->Host = !empty($input['smtp_host']) ? $input['smtp_host'] : get_config($pdo, 'smtp_host');
+        $mail->Port = !empty($input['smtp_port']) ? (int)$input['smtp_port'] : (int)get_config($pdo, 'smtp_port', '587');
+        $mail->SMTPAuth = isset($input['smtp_auth']) ? (bool)$input['smtp_auth'] : (get_config($pdo, 'smtp_auth', '1') === '1');
+        $mail->Username = !empty($input['smtp_user']) ? $input['smtp_user'] : get_config($pdo, 'smtp_user');
+        
+        $sec = isset($input['smtp_security']) ? $input['smtp_security'] : get_config($pdo, 'smtp_security', 'tls');
+        $mail->SMTPSecure = $sec === 'none' ? '' : $sec;
 
         if (!empty($input['smtp_pass'])) {
             $mail->Password = $input['smtp_pass'];
-        } elseif (file_exists($configFile)) {
-            $configSalva = json_decode(file_get_contents($configFile), true);
-            if (!empty($configSalva['smtp_password:'])) {
-                $mail->Password = $configSalva['smtp_password:'];
-            } else {
-                throw new Exception("Senha não encontrada.");
-            }
         } else {
-            throw new Exception("Senha obrigatória.");
+            $passBanco = get_config($pdo, 'smtp_pass');
+            if (!empty($passBanco)) {
+                $mail->Password = $passBanco;
+            } else {
+                throw new Exception("Senha do SMTP não informada ou não cadastrada no banco de dados.");
+            }
+        }
+
+        if (empty($mail->Host) || empty($mail->Username)) {
+            throw new Exception("Host e Usuário SMTP são obrigatórios.");
         }
 
         if ($mail->smtpConnect()) {
             $mail->smtpClose();
             echo json_encode(['success' => true, 'message' => 'Conexão SMTP bem-sucedida!']);
         } else {
-            throw new Exception("Falha ao conectar.");
+            throw new Exception("Falha ao conectar com o servidor SMTP.");
         }
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => "Erro: " . $e->getMessage()]);
+    }
+}
+
+function handle_nfse_config($pdo, $method, $input) {
+    $fields = [
+        'nfse_empresa_nome' => 'Elias Tech Master - Reparos de Computadores',
+        'nfse_cnpj_cpf' => '48.998.339/0001-70',
+        'nfse_inscricao_municipal' => '8920144-2',
+        'nfse_endereco' => 'Rua Pedro Paulo de Abreu, 801 - Forquilhinhas',
+        'nfse_municipio' => 'São José',
+        'nfse_uf' => 'SC',
+        'nfse_cep' => '88106-500',
+        'nfse_telefone' => '(48) 99833-9706',
+        'nfse_email' => 'eliasgkersten@gmail.com',
+        'nfse_regime_tributario' => 'Simples Nacional / MEI',
+        'nfse_codigo_tributacao' => '14.01.01',
+        'nfse_desc_tributacao' => 'Lubrificação, limpeza, lustração, revisão, conserto, restauração, manutenção e conservação de máquinas e equipamentos de informática e tecnologia.',
+        'nfse_garantia_dias' => '90'
+    ];
+
+    if ($method == 'GET') {
+        $config = [];
+        foreach ($fields as $chave => $default) {
+            $config[$chave] = get_config($pdo, $chave, $default);
+        }
+        echo json_encode($config);
+    } elseif ($method == 'PUT' || $method == 'POST') {
+        foreach (array_keys($fields) as $chave) {
+            if (isset($input[$chave])) {
+                set_config($pdo, $chave, (string)$input[$chave]);
+            }
+        }
+        echo json_encode(['success' => true, 'message' => 'Configurações da empresa / NFS-e salvas com sucesso!']);
+    } else {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Método não permitido.']);
     }
 }
 

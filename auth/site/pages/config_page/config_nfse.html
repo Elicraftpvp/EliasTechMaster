@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações da Empresa e NFS-e</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../../style/css.css">
+</head>
+<body class="iframe-page">
+
+    <form id="form-nfse-config">
+        <h4><i class="fas fa-file-invoice-dollar card-title-icon"></i> Dados da Empresa & NFS-e (Demonstrativo)</h4>
+        <p class="text-muted">Personalize os dados da sua empresa exibidos nos cabeçalhos das Ordens de Serviço e no Recibo / Demonstrativo NFS-e.</p>
+        
+        <!-- INFORMAÇÕES DA EMPRESA (EMITENTE) -->
+        <h5 class="mt-4"><i class="fas fa-building text-success me-2"></i>Identificação do Emitente (Prestador)</h5>
+        
+        <div class="row mt-3">
+            <div class="col-md-6 mb-3">
+                <label for="nfse_empresa_nome" class="form-label fw-bold">Razão Social / Nome Fantasia</label>
+                <input type="text" class="form-control" id="nfse_empresa_nome" placeholder="Ex: Elias Tech Master Reparos" required>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="nfse_cnpj_cpf" class="form-label fw-bold">CNPJ ou CPF</label>
+                <input type="text" class="form-control" id="nfse_cnpj_cpf" placeholder="00.000.000/0001-00" required>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="nfse_inscricao_municipal" class="form-label fw-bold">Inscrição Municipal</label>
+                <input type="text" class="form-control" id="nfse_inscricao_municipal" placeholder="Ex: 8920144-2">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="nfse_endereco" class="form-label">Endereço Completo</label>
+                <input type="text" class="form-control" id="nfse_endereco" placeholder="Rua, Número, Bairro" required>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="nfse_municipio" class="form-label">Município</label>
+                <input type="text" class="form-control" id="nfse_municipio" placeholder="São José" required>
+            </div>
+            <div class="col-md-1 mb-3">
+                <label for="nfse_uf" class="form-label">UF</label>
+                <input type="text" class="form-control text-uppercase" id="nfse_uf" maxlength="2" placeholder="SC" required>
+            </div>
+            <div class="col-md-2 mb-3">
+                <label for="nfse_cep" class="form-label">CEP</label>
+                <input type="text" class="form-control" id="nfse_cep" placeholder="88106-500">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="nfse_telefone" class="form-label">Telefone / WhatsApp</label>
+                <input type="text" class="form-control" id="nfse_telefone" placeholder="(48) 99833-9706">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="nfse_email" class="form-label">E-mail Comercial</label>
+                <input type="email" class="form-control" id="nfse_email" placeholder="contato@empresa.com">
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="nfse_regime_tributario" class="form-label">Enquadramento / Regime</label>
+                <select class="form-select" id="nfse_regime_tributario">
+                    <option value="Simples Nacional / MEI">Simples Nacional (MEI)</option>
+                    <option value="Simples Nacional (Microempresa)">Simples Nacional (ME)</option>
+                    <option value="Simples Nacional (EPP)">Simples Nacional (EPP)</option>
+                    <option value="Lucro Presumido">Lucro Presumido</option>
+                    <option value="Lucro Real">Lucro Real</option>
+                </select>
+            </div>
+        </div>
+
+        <hr>
+
+        <!-- TRIBUTAÇÃO E GARANTIA -->
+        <h5 class="mt-4"><i class="fas fa-tools text-primary me-2"></i>Classificação de Serviço & Garantia</h5>
+
+        <div class="row mt-3">
+            <div class="col-md-3 mb-3">
+                <label for="nfse_codigo_tributacao" class="form-label">Código Tributação Nacional</label>
+                <input type="text" class="form-control" id="nfse_codigo_tributacao" placeholder="Ex: 14.01.01" value="14.01.01">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="nfse_desc_tributacao" class="form-label">Descrição Padrão da Atividade</label>
+                <input type="text" class="form-control" id="nfse_desc_tributacao" placeholder="Manutenção e conservação de informática...">
+            </div>
+            <div class="col-md-3 mb-3">
+                <label for="nfse_garantia_dias" class="form-label">Garantia Padrão (Dias)</label>
+                <input type="number" class="form-control" id="nfse_garantia_dias" placeholder="90" value="90">
+            </div>
+        </div>
+
+        <div class="mt-4 mb-5">
+            <button type="submit" class="btn btn-primary px-4 py-2" id="salvar-nfse-btn">
+                <i class="fas fa-save me-2"></i>Salvar Dados da Empresa e NFS-e
+            </button>
+        </div>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../script/common.js"></script>
+    <script src="../../script/config_page/config_nfse.js"></script>
+</body>
+</html>

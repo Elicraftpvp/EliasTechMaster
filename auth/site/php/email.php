@@ -9,16 +9,31 @@ if (file_exists($autoloadPath)) {
 }
 require_once __DIR__ . '/gerar_pdf.php';
 
-function carregarConfigSmtp() {
-    $configFile = __DIR__ . '/../mail/email_config.json';
-    if (!file_exists($configFile)) return 'Erro: email_config.json não encontrado.';
-    $config = json_decode(file_get_contents($configFile), true);
-    if ($config === null) return 'Erro: email_config.json mal formatado.';
-    $requiredKeys = ['smtp_host', 'smtp_user', 'smtp_port', 'smtp_password:'];
-    foreach ($requiredKeys as $key) {
-        if (empty($config[$key])) return "Erro: A chave '{$key}' está faltando.";
+function carregarConfigSmtp(?PDO $pdo = null) {
+    if (!$pdo) {
+        require __DIR__ . '/conexao.php';
     }
-    return $config;
+    
+    $stmt = $pdo->query("SELECT chave, valor FROM configuracoes");
+    $configs = $stmt->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    
+    if (empty($configs['smtp_host'])) return 'Erro: Servidor SMTP não configurado no banco de dados.';
+    if (empty($configs['smtp_user'])) return 'Erro: Usuário SMTP não configurado.';
+    if (empty($configs['smtp_port'])) return 'Erro: Porta SMTP não configurada.';
+    if (empty($configs['smtp_pass'])) return 'Erro: Senha do SMTP não configurada.';
+
+    return [
+        'smtp_host' => $configs['smtp_host'] ?? '',
+        'smtp_user' => $configs['smtp_user'] ?? '',
+        'smtp_port' => (int)($configs['smtp_port'] ?? 587),
+        'smtp_password:' => $configs['smtp_pass'] ?? '',
+        'smtp_pass' => $configs['smtp_pass'] ?? '',
+        'smtp_security' => $configs['smtp_security'] ?? 'tls',
+        'smtp_auth' => ($configs['smtp_auth'] ?? '1') === '1',
+        'smtp_from_name' => $configs['nfse_empresa_nome'] ?? 'Elias TechMaster',
+        'email_subject_template' => $configs['email_subject_template'] ?? 'OS: (N_OS_tag) - Cliente: (Nome_cliente_tag)',
+        'email_body_template' => $configs['email_body_template'] ?? "Olá (Nome_cliente_tag),\n\nSua Ordem de Serviço de número (N_OS_tag) foi atualizada.\nStatus atual: (Status_OS_tag)\n\nAgradecemos a preferência.\n\nAtenciosamente,\nEquipe de Suporte"
+    ];
 }
 
 function enviarEmailTesteSimples(string $destinatarioEmail, string $assuntoTemplate, string $corpoTemplate) {
