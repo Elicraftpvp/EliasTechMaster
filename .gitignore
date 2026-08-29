@@ -8,3 +8,4 @@ email_trigger.log
 auth/site/backend/conexao.php
 *.sql
 *.db*
+*.bat
