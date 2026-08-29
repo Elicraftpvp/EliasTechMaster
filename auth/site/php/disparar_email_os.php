@@ -26,29 +26,40 @@ $osId = (int)$argv[1];
 logMsg("Processando OS #$osId...");
 
 try {
-    // 0. Registrar início da tentativa no Banco
-    $stmt_start = $pdo->prepare("UPDATE email_queue SET ultima_tentativa = NOW(), status = 'pendente' WHERE os_id = ? AND status != 'enviado' ORDER BY id DESC LIMIT 1");
-    $stmt_start->execute([$osId]);
+    $now = date('Y-m-d H:i:s');
+
+    // 0. Buscar item pendente na fila
+    $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? AND status != 'enviado' ORDER BY id DESC LIMIT 1");
+    $stmt_find->execute([$osId]);
+    $queueItem = $stmt_find->fetch();
+
+    if ($queueItem) {
+        $stmt_start = $pdo->prepare("UPDATE email_queue SET ultima_tentativa = ?, status = 'pendente' WHERE id = ?");
+        $stmt_start->execute([$now, $queueItem['id']]);
+    }
 
     // 1. Tentar enviar o e-mail
     logMsg("Chamando enviarEmailOsComAnexo...");
     $resultado = enviarEmailOsComAnexo($pdo, $osId);
     
     // 2. Atualizar o status na fila (email_queue)
-    $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? ORDER BY id DESC LIMIT 1");
-    $stmt_find->execute([$osId]);
-    $queueItem = $stmt_find->fetch();
+    if (!$queueItem) {
+        $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? ORDER BY id DESC LIMIT 1");
+        $stmt_find->execute([$osId]);
+        $queueItem = $stmt_find->fetch();
+    }
 
     if ($queueItem) {
         $queueId = $queueItem['id'];
+        $now = date('Y-m-d H:i:s');
         if ($resultado['success']) {
             logMsg("SUCESSO: E-mail enviado.");
-            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'enviado', ultima_tentativa = NOW(), erro = NULL WHERE id = ?");
-            $stmt_upd->execute([$queueId]);
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'enviado', ultima_tentativa = ?, erro = NULL WHERE id = ?");
+            $stmt_upd->execute([$now, $queueId]);
         } else {
             logMsg("FALHA: " . $resultado['message']);
-            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'erro', ultima_tentativa = NOW(), erro = ? WHERE id = ?");
-            $stmt_upd->execute([$resultado['message'], $queueId]);
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'erro', ultima_tentativa = ?, erro = ? WHERE id = ?");
+            $stmt_upd->execute([$now, $resultado['message'], $queueId]);
         }
     } else {
         logMsg("AVISO: Item não encontrado na fila para OS #$osId.");

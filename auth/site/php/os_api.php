@@ -1,5 +1,6 @@
 <?php
-ini_set('display_errors', 1);
+ob_start();
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 require 'conexao.php';
 header('Content-Type: application/json');
@@ -107,6 +108,7 @@ try {
                     $phpPath = 'php';
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                         $possiveis = [
+                            'C:\\php\\php.exe',
                             'C:\\xampp\\php\\php.exe',
                             'D:\\xampp\\php\\php.exe',
                             'B:\\Programs\\XAMPP\\php\\php.exe',
@@ -175,8 +177,10 @@ try {
     }
 
 } catch (Exception $e) {
+    ob_end_clean();
     if ($pdo->inTransaction()) { $pdo->rollBack(); }
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Erro no servidor: ' . $e->getMessage()]);
 }
+ob_end_flush();
 ?>

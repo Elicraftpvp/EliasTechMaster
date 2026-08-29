@@ -3,11 +3,13 @@
 
 /**
  * =======================================================================
- * BIBLIOTECA PHP QR CODE
+ * BIBLIOTECA QR CODE (Endroid via Composer)
  * =======================================================================
- * Certifique-se de que a biblioteca phpqrcode está no diretório correto.
  */
-require_once __DIR__ . '/phpqrcode/qrlib.php';
+$autoloadPath = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
 
 /**
  * Calcula o CRC16 para o payload PIX.
@@ -70,19 +72,32 @@ function gerarCodigoPIX($chave, $nome, $cidade, $valor, $txid = '***') {
 
 /**
  * Gera um QR Code PIX e retorna como uma imagem em Base64 para embutir em HTML.
+ * Usa a biblioteca Endroid QR Code (instalada via Composer).
  * @param string $payload
  * @return string Data URI (data:image/png;base64,...)
  */
 function gerarQRCodeBase64($payload) {
     try {
-        ob_start();
-        QRcode::png($payload, false, QR_ECLEVEL_H, 5, 2);
-        $imageData = ob_get_contents();
-        ob_end_clean();
-        return 'data:image/png;base64,' . base64_encode($imageData);
-    } catch (Exception $e) {
-        // Em caso de erro, retorna uma string vazia ou um placeholder
+        if (class_exists('Endroid\QrCode\QrCode')) {
+            $qrCode = new \Endroid\QrCode\QrCode(
+                data: $payload,
+                size: 200,
+                margin: 5
+            );
+            $writer = new \Endroid\QrCode\Writer\PngWriter();
+            $result = $writer->write($qrCode);
+            return $result->getDataUri();
+        }
+        if (class_exists('QRcode')) {
+            ob_start();
+            \QRcode::png($payload, false, defined('QR_ECLEVEL_H') ? QR_ECLEVEL_H : 'H', 5, 2);
+            $imageData = ob_get_contents();
+            ob_end_clean();
+            return 'data:image/png;base64,' . base64_encode($imageData);
+        }
+        return '';
+    } catch (\Throwable $e) {
         return '';
     }
 }
-?>
+?>

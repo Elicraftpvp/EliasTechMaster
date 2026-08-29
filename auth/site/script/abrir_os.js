@@ -259,8 +259,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (!result.success) throw new Error(result.error || 'Erro desconhecido ao salvar.');
 
+            // Pergunta sobre inclusão da NFSe
+            const querNfse = await perguntarFormatoNfse();
+
             // Gerar PDF
-            const pdfResponse = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${result.os_id}`);
+            const pdfResponse = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${result.os_id}&nfse=${querNfse ? 1 : 0}`);
             const pdfResult = await pdfResponse.json();
             if (pdfResult.success) {
                 window.open(`../php/pdfs/${pdfResult.fileName}`, '_blank');

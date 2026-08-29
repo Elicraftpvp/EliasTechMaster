@@ -54,20 +54,38 @@ try {
     // Chama a função que gera o PDF e envia o e-mail com anexo.
     $resultado = enviarEmailOsComAnexo($pdo, $osId);
 
+    $now = date('Y-m-d H:i:s');
+    $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? ORDER BY id DESC LIMIT 1");
+    $stmt_find->execute([$osId]);
+    $queueItem = $stmt_find->fetch();
+    $queueId = $queueItem ? $queueItem['id'] : null;
+
     if ($resultado['success']) {
         log_message("SUCESSO: E-mail para a OS #" . $osId . " foi processado com sucesso pela função.");
-        $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'enviado', ultima_tentativa = NOW(), tentativas = tentativas + 1, erro = NULL WHERE os_id = ? AND status != 'enviado' ORDER BY id DESC LIMIT 1");
-        $stmt_upd->execute([$osId]);
+        if ($queueId) {
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'enviado', ultima_tentativa = ?, tentativas = COALESCE(tentativas, 0) + 1, erro = NULL WHERE id = ?");
+            $stmt_upd->execute([$now, $queueId]);
+        }
     } else {
         log_message("FALHA: A função de envio retornou um erro para a OS #" . $osId . ". Motivo: " . $resultado['message']);
-        $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'falhou', ultima_tentativa = NOW(), tentativas = tentativas + 1, erro = ? WHERE os_id = ? AND status != 'enviado' ORDER BY id DESC LIMIT 1");
-        $stmt_upd->execute([$resultado['message'], $osId]);
+        if ($queueId) {
+            $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'falhou', ultima_tentativa = ?, tentativas = COALESCE(tentativas, 0) + 1, erro = ? WHERE id = ?");
+            $stmt_upd->execute([$now, $resultado['message'], $queueId]);
+        }
     }
 } catch (Throwable $e) { // Captura qualquer tipo de erro ou exceção
     log_message("ERRO CRÍTICO no bloco try-catch: " . $e->getMessage() . " no arquivo " . $e->getFile() . " na linha " . $e->getLine());
     if (isset($pdo) && isset($osId)) {
-        $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'falhou', ultima_tentativa = NOW(), tentativas = tentativas + 1, erro = ? WHERE os_id = ? AND status != 'enviado' ORDER BY id DESC LIMIT 1");
-        $stmt_upd->execute([$e->getMessage(), $osId]);
+        try {
+            $now = date('Y-m-d H:i:s');
+            $stmt_find = $pdo->prepare("SELECT id FROM email_queue WHERE os_id = ? ORDER BY id DESC LIMIT 1");
+            $stmt_find->execute([$osId]);
+            $queueItem = $stmt_find->fetch();
+            if ($queueItem) {
+                $stmt_upd = $pdo->prepare("UPDATE email_queue SET status = 'falhou', ultima_tentativa = ?, tentativas = COALESCE(tentativas, 0) + 1, erro = ? WHERE id = ?");
+                $stmt_upd->execute([$now, $e->getMessage(), $queueItem['id']]);
+            }
+        } catch (Throwable $ignore) {}
     }
 }
 

@@ -254,10 +254,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Visualizar PDF
         if (button.classList.contains('btn-visualizar')) {
+            const querNfse = await perguntarFormatoNfse();
+            
             button.disabled = true;
             button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             try {
-                const response = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${osId}`);
+                const response = await fetch(`${API_BASE_URL}/gerar_pdf.php?id=${osId}&nfse=${querNfse ? 1 : 0}`);
                 const result = await response.json();
                 if (result.success) {
                     window.open(`../php/pdfs/${result.fileName}`, '_blank');

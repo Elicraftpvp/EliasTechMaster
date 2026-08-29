@@ -240,8 +240,16 @@ function get_config($pdo, $chave, $default = '') {
 }
 
 function set_config($pdo, $chave, $valor) {
-    $stmt = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = ?");
-    return $stmt->execute([$chave, $valor, $valor]);
+    $stmt = $pdo->prepare("SELECT id FROM configuracoes WHERE chave = ?");
+    $stmt->execute([$chave]);
+    $row = $stmt->fetch();
+    if ($row) {
+        $stmtUpdate = $pdo->prepare("UPDATE configuracoes SET valor = ? WHERE chave = ?");
+        return $stmtUpdate->execute([$valor, $chave]);
+    } else {
+        $stmtInsert = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (?, ?)");
+        return $stmtInsert->execute([$chave, $valor]);
+    }
 }
 
 function handle_pix($pdo, $method, $input) {
@@ -281,6 +289,7 @@ function handle_fila_email($pdo, $method, $input, $get) {
                     $phpPath = 'php';
                     if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                         $possiveis = [
+                            'C:\\php\\php.exe',
                             'C:\\xampp\\php\\php.exe',
                             'D:\\xampp\\php\\php.exe',
                             'B:\\Programs\\XAMPP\\php\\php.exe',
