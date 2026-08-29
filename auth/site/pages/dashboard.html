@@ -4,60 +4,128 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="../style/css.css">
 </head>
 <body id="page-dashboard" class="iframe-page fade-in">
     <div class="container-fluid p-0">
-        <h2 class="mb-4 fw-bold text-primary"><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
         
-        <div class="row">
-            <!-- Coluna de Navegação/Botões Empilhados -->
-            <div class="col-lg-4 col-md-5">
-                <div class="glass-card overflow-hidden shadow-sm mb-4">
-                    <div class="list-group list-group-flush">
-                        <a href="#" id="btn-nav-os-abertas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <i class="fas fa-folder-open fa-fw me-2 text-primary"></i>
-                                <span class="fw-bold">OS Abertas</span>
-                            </div>
-                            <span id="count-os-abertas" class="badge bg-primary rounded-pill">0</span>
-                        </a>
-                        <a href="#" id="btn-nav-os-andamento" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <i class="fas fa-cogs fa-fw me-2 text-warning"></i>
-                                <span class="fw-bold">OS em Andamento</span>
-                            </div>
-                            <span id="count-os-andamento" class="badge bg-warning rounded-pill">0</span>
-                        </a>
-                        <a href="#" id="btn-nav-os-finalizadas" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <i class="fas fa-check-circle fa-fw me-2 text-success"></i>
-                                <span class="fw-bold">OS Finalizadas</span>
-                            </div>
-                            <span id="count-os-finalizadas" class="badge bg-success rounded-pill">0</span>
-                        </a>
-                        <a href="#" id="btn-nav-clientes" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
-                            <div>
-                                <i class="fas fa-users fa-fw me-2 text-info"></i>
-                                <span class="fw-bold">Clientes Cadastrados</span>
-                            </div>
-                            <span id="count-clientes" class="badge bg-info rounded-pill">0</span>
-                        </a>
+        <!-- HEADER / HERO DO DASHBOARD -->
+        <div class="dashboard-hero-card mb-4 p-4 shadow-sm">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon-wrapper">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h2 class="hero-title mb-1">Painel de Controle</h2>
+                        <p class="hero-subtitle mb-0">Visão geral do sistema, ordens de serviço e fluxo financeiro em tempo real</p>
                     </div>
                 </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="system-status-pill">
+                        <span class="live-pulse-dot"></span>
+                        <span>Sistema Ativo</span>
+                    </span>
+                    <button id="btn-refresh-dashboard" class="btn btn-refresh-custom" title="Atualizar Dados">
+                        <i class="fas fa-rotate" id="refresh-icon"></i>
+                        <span class="d-none d-sm-inline ms-1">Atualizar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
 
-                <!-- Painel Liquid Glass: Valores Obtidos de Caixa -->
-                <div class="liquid-glass-card shadow-sm p-3">
-                    <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom border-light-subtle">
+        <!-- LINHA 1: 4 KPI CARDS EM DESTAQUE (BENTO GRID) -->
+        <div class="row g-3 mb-4">
+            <!-- 1. OS Abertas -->
+            <div class="col-xl-3 col-sm-6">
+                <div class="kpi-glass-card kpi-card-abertas" id="kpi-btn-abertas" role="button" tabindex="0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-label">OS Abertas</span>
+                            <h3 class="kpi-value" id="count-os-abertas">0</h3>
+                            <span class="kpi-hint"><i class="fas fa-arrow-right me-1"></i>Ver chamados</span>
+                        </div>
+                        <div class="kpi-icon-badge badge-kpi-abertas">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-accent-bar bar-abertas"></div>
+                </div>
+            </div>
+
+            <!-- 2. OS em Andamento -->
+            <div class="col-xl-3 col-sm-6">
+                <div class="kpi-glass-card kpi-card-andamento" id="kpi-btn-andamento" role="button" tabindex="0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-label">Em Andamento</span>
+                            <h3 class="kpi-value" id="count-os-andamento">0</h3>
+                            <span class="kpi-hint"><i class="fas fa-arrow-right me-1"></i>Em bancada</span>
+                        </div>
+                        <div class="kpi-icon-badge badge-kpi-andamento">
+                            <i class="fas fa-screwdriver-wrench"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-accent-bar bar-andamento"></div>
+                </div>
+            </div>
+
+            <!-- 3. OS Concluídas -->
+            <div class="col-xl-3 col-sm-6">
+                <div class="kpi-glass-card kpi-card-finalizadas" id="kpi-btn-finalizadas" role="button" tabindex="0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-label">OS Finalizadas</span>
+                            <h3 class="kpi-value" id="count-os-finalizadas">0</h3>
+                            <span class="kpi-hint"><i class="fas fa-arrow-right me-1"></i>Finalizadas</span>
+                        </div>
+                        <div class="kpi-icon-badge badge-kpi-finalizadas">
+                            <i class="fas fa-circle-check"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-accent-bar bar-finalizadas"></div>
+                </div>
+            </div>
+
+            <!-- 4. Total de Clientes -->
+            <div class="col-xl-3 col-sm-6">
+                <div class="kpi-glass-card kpi-card-clientes" id="kpi-btn-clientes" role="button" tabindex="0">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <span class="kpi-label">Clientes Cadastrados</span>
+                            <h3 class="kpi-value" id="count-clientes">0</h3>
+                            <span class="kpi-hint"><i class="fas fa-arrow-right me-1"></i>Base ativa</span>
+                        </div>
+                        <div class="kpi-icon-badge badge-kpi-clientes">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="kpi-accent-bar bar-clientes"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LINHA 2: CORPO PRINCIPAL (FINANCEIRO + FEED DE ATIVIDADES) -->
+        <div class="row g-4">
+            
+            <!-- COLUNA ESQUERDA: FINANCEIRO & ATALHOS RÁPIDOS -->
+            <div class="col-lg-4 col-md-5">
+                
+                <!-- PAINEL LIQUID GLASS: VALORES OBTIDOS DE CAIXA -->
+                <div class="liquid-glass-card shadow-sm p-4 mb-4">
+                    <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom border-light-subtle">
                         <div class="d-flex align-items-center">
                             <div class="liquid-header-icon me-2">
                                 <i class="fas fa-sack-dollar"></i>
                             </div>
                             <div>
                                 <h6 class="mb-0 fw-bold text-dark">Valores Obtidos de Caixa</h6>
-                                <small class="text-muted" style="font-size: 11px;">Receitas de Ordens Concluídas</small>
+                                <small class="text-muted" style="font-size: 11px;">Receita de Ordens Concluídas</small>
                             </div>
                         </div>
                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
@@ -66,7 +134,7 @@
                     </div>
 
                     <div class="d-flex flex-column gap-3">
-                        <!-- 1. Este Mês -->
+                        <!-- Painel 1: Mês Atual -->
                         <div class="liquid-panel liquid-panel-mes">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -80,7 +148,7 @@
                             <div class="liquid-glow-line glow-emerald"></div>
                         </div>
 
-                        <!-- 2. Este Ano -->
+                        <!-- Painel 2: Ano Atual -->
                         <div class="liquid-panel liquid-panel-ano">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -94,7 +162,7 @@
                             <div class="liquid-glow-line glow-cyan"></div>
                         </div>
 
-                        <!-- 3. Total Geral -->
+                        <!-- Painel 3: Total Geral -->
                         <div class="liquid-panel liquid-panel-total">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -109,62 +177,107 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- CARD: AÇÕES RÁPIDAS -->
+                <div class="glass-card p-4 shadow-sm">
+                    <h6 class="fw-bold mb-3 text-dark d-flex align-items-center">
+                        <i class="fas fa-bolt text-warning me-2"></i>Ações Rápidas
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="#" id="quick-btn-abrir-os" class="quick-action-btn">
+                                <i class="fas fa-plus-circle text-success"></i>
+                                <span>Abrir OS</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" id="quick-btn-novo-cliente" class="quick-action-btn">
+                                <i class="fas fa-user-plus text-info"></i>
+                                <span>Novo Cliente</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" id="quick-btn-gerenciar-os" class="quick-action-btn">
+                                <i class="fas fa-list-check text-primary"></i>
+                                <span>Gerenciar OS</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" id="quick-btn-config" class="quick-action-btn">
+                                <i class="fas fa-gear text-secondary"></i>
+                                <span>Ajustes</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <!-- Coluna de Conteúdo/Listas -->
-            <div class="col-lg-8 col-md-7 mt-4 mt-md-0">
-                <!-- Card para OS Abertas -->
-                <div class="glass-card mb-4 overflow-hidden">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h6 class="mb-0 fw-bold text-primary"><i class="fas fa-stream me-2"></i>Últimas OS Abertas</h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush dashboard-list" id="lista-os-abertas">
-                            <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></li>
+            <!-- COLUNA DIREITA: FEED DE ORDENS DE SERVIÇO & CLIENTES -->
+            <div class="col-lg-8 col-md-7">
+                
+                <!-- CARD: MONITOR DE ORDENS DE SERVIÇO -->
+                <div class="glass-card shadow-sm overflow-hidden mb-4">
+                    <div class="card-header bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-stream text-primary me-2 fs-5"></i>
+                            <h6 class="mb-0 fw-bold text-dark">Ordens de Serviço Recentes</h6>
+                        </div>
+                        
+                        <!-- Filtros Rápidos / Tabs de OS -->
+                        <ul class="nav nav-pills os-filter-pills" id="os-filter-tabs">
+                            <li class="nav-item">
+                                <button class="nav-link active" data-filter="todas">Todas</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-filter="abertas">Abertas</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-filter="andamento">Em Andamento</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" data-filter="concluidas">Finalizadas</button>
+                            </li>
                         </ul>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="os-recent-list-wrapper" id="feed-os-container">
+                            <div class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+                                <div>Carregando ordens de serviço...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Card para OS em Andamento -->
-                <div class="glass-card mb-4 overflow-hidden">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h6 class="mb-0 fw-bold text-warning"><i class="fas fa-spinner fa-spin me-2"></i>OS em Andamento</h6>
+                <!-- CARD: ÚLTIMOS CLIENTES ADICIONADOS -->
+                <div class="glass-card shadow-sm overflow-hidden">
+                    <div class="card-header bg-white border-0 py-3 px-4 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-plus text-info me-2 fs-5"></i>
+                            <h6 class="mb-0 fw-bold text-dark">Últimos Clientes Cadastrados</h6>
+                        </div>
+                        <a href="#" id="link-ver-todos-clientes" class="btn btn-sm btn-outline-secondary border-0 text-muted fs-7">
+                            <span>Ver Todos</span> <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
                     </div>
                     <div class="card-body p-0">
-                        <ul class="list-group list-group-flush dashboard-list" id="lista-os-andamento">
-                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-warning"></div></li>
-                        </ul>
+                        <div class="clients-recent-list" id="feed-clientes-container">
+                            <div class="text-center py-4 text-muted">
+                                <div class="spinner-border spinner-border-sm text-info mb-2"></div>
+                                <div>Carregando clientes...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Card para OS Finalizadas -->
-                <div class="glass-card mb-4 overflow-hidden">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h6 class="mb-0 fw-bold text-success"><i class="fas fa-history me-2"></i>Últimas OS Finalizadas</h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush dashboard-list" id="lista-os-finalizadas">
-                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-success"></div></li>
-                        </ul>
-                    </div>
-                </div>
-
-                 <!-- Card para Clientes -->
-                 <div class="glass-card overflow-hidden">
-                    <div class="card-header bg-white border-0 py-3">
-                        <h6 class="mb-0 fw-bold text-info"><i class="fas fa-user-plus me-2"></i>Últimos Clientes Adicionados</h6>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush dashboard-list" id="lista-clientes">
-                             <li class="list-group-item text-center py-4"><div class="spinner-border spinner-border-sm text-info"></div></li>
-                        </ul>
-                    </div>
-                </div>
             </div>
         </div>
+
     </div>
 
-    <!-- SCRIPTS ESSENCIAIS PARA FUNCIONALIDADE DA PÁGINA -->
+    <!-- SCRIPTS ESSENCIAIS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../script/common.js"></script>
     <script src="../script/dashboard.js"></script>
