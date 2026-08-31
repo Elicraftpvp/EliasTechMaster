@@ -9,3 +9,4 @@ auth/site/backend/conexao.php
 *.sql
 *.db*
 *.bat
+*.sh
